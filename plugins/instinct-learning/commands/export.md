@@ -10,7 +10,7 @@ Export your instincts to a file for sharing or backup.
 ## Usage
 
 ```
-/instinct:export [--output <file>] [--domain <domain>] [--min-confidence <0.0-1.0>]
+/export [--output <file>] [--domain <domain>] [--min-confidence <0.0-1.0>]
 ```
 
 ## Options
@@ -58,5 +58,5 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py export [options]
 
 ## Related Commands
 
-- `/instinct:import` - Import instincts
-- `/instinct:status` - View all instincts
+- `/import` - Import instincts
+- `/status` - View all instincts

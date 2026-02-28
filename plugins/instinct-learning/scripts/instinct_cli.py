@@ -7,6 +7,9 @@ Commands:
   import   - Import instincts from file or URL
   export   - Export instincts to file
   evolve   - Cluster instincts into skills/commands/agents
+
+Note: Use /instinct:analyze command to dispatch the observer agent
+for AI-based pattern detection from observations.
 """
 
 import argparse

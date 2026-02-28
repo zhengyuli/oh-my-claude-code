@@ -5,7 +5,7 @@ An instinct-based learning system that observes your Claude Code sessions, learn
 ## Features
 
 - **Hook-based Observation**: Captures 100% of tool use events via PreToolUse/PostToolUse hooks
-- **Manual Analysis**: Trigger pattern analysis on-demand with `/instinct:analyze`
+- **AI-powered Analysis**: `/instinct:analyze` dispatches observer agent (Haiku) for pattern detection
 - **Confidence Scoring**: Each instinct has a confidence score (0.3-0.9) based on observation frequency
 - **Evolution**: Cluster related instincts into skills, commands, or agents
 - **Import/Export**: Share instincts with your team
@@ -18,20 +18,20 @@ Install from the oh-my-claude-code marketplace.
 
 | Command | Description |
 |---------|-------------|
-| `/instinct:analyze` | Analyze observations and create/update instincts |
+| `/instinct:analyze` | Dispatch observer agent to analyze observations and create instincts |
 | `/instinct:status` | Show all instincts with confidence scores |
-| `/instinct:evolve` | Cluster instincts into skills/commands/agents |
-| `/instinct:export` | Export instincts for sharing |
-| `/instinct:import <file>` | Import instincts from others |
+| `/instinct:evolve [--generate]` | Cluster instincts into skills/commands/agents |
+| `/instinct:export [options]` | Export instincts for sharing |
+| `/instinct:import <source>` | Import instincts from file or URL |
 
 ## Data Directory
 
 ```
 ~/.claude/instinct-learning/
 ├── config.json           # User configuration
-├── observations.jsonl    # Observation data
+├── observations.jsonl    # Observation data (captured by hooks)
 ├── instincts/
-│   ├── personal/         # Auto-learned instincts
+│   ├── personal/         # AI-learned instincts (from /instinct:analyze)
 │   └── inherited/        # Imported instincts
 └── evolved/
     ├── agents/           # Evolved agents
@@ -39,13 +39,61 @@ Install from the oh-my-claude-code marketplace.
     └── commands/         # Evolved commands
 ```
 
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     DATA FLOW                                    │
+└─────────────────────────────────────────────────────────────────┘
+
+Session Activity
+      │
+      │ hooks/observe.sh captures (100% reliable)
+      ▼
+observations.jsonl
+      │
+      │ /instinct:analyze (manual trigger)
+      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Observer Agent (Haiku)                        │
+│  - Reads observations.jsonl                                      │
+│  - Detects patterns (corrections, workflows, preferences)        │
+│  - Creates/updates instinct files                                │
+└─────────────────────────────────────────────────────────────────┘
+      │
+      │ Creates
+      ▼
+instincts/personal/*.md
+      │
+      │ /instinct:evolve (clustering)
+      ▼
+evolved/
+├── skills/
+├── commands/
+└── agents/
+```
+
+## Components
+
+| Component | Type | Responsibility |
+|-----------|------|----------------|
+| `hooks/observe.sh` | Script | Capture tool use events |
+| `hooks/hooks.json` | Config | Hook configuration |
+| `agents/observer.md` | Agent | AI-powered pattern detection |
+| `commands/analyze.md` | Command | Dispatch observer agent |
+| `commands/status.md` | Command | Show instinct status |
+| `commands/evolve.md` | Command | Cluster instincts |
+| `commands/export.md` | Command | Export instincts |
+| `commands/import.md` | Command | Import instincts |
+| `scripts/instinct_cli.py` | CLI | File operations for status/import/export/evolve |
+
 ## Instinct File Format
 
 ```markdown
 ---
 id: prefer-grep-before-edit
 trigger: "when searching for code to modify"
-confidence: 0.65
+confidence: 0.75
 domain: "workflow"
 source: "session-observation"
 created: "2026-02-28T10:30:00Z"
@@ -61,6 +109,25 @@ Always use Grep to find the exact location before using Edit.
 - Observed 8 times in session abc123
 - Pattern: Grep → Read → Edit sequence
 ```
+
+## Domains
+
+- `code-style`: Coding patterns and preferences
+- `testing`: Test writing and execution patterns
+- `git`: Version control workflows
+- `debugging`: Error investigation and fixing
+- `workflow`: General development workflow
+- `architecture`: System design decisions
+- `documentation`: Documentation patterns
+
+## Confidence Scoring
+
+| Score | Meaning | Behavior |
+|-------|---------|----------|
+| 0.3 | Tentative | Suggested but not enforced |
+| 0.5 | Moderate | Applied when relevant |
+| 0.7 | Strong | Auto-approved for application |
+| 0.9 | Near-certain | Core behavior |
 
 ## Configuration
 
@@ -86,8 +153,8 @@ Edit `~/.claude/instinct-learning/config.json` to customize:
 ## How It Works
 
 1. **Capture**: Hooks automatically capture tool use events
-2. **Analyze**: Run `/instinct:analyze` to detect patterns
-3. **Learn**: Instincts are created with confidence scores
+2. **Analyze**: Run `/instinct:analyze` to dispatch observer agent
+3. **Learn**: Observer creates instincts with confidence scores
 4. **Evolve**: Run `/instinct:evolve` to cluster into capabilities
 
 ## Privacy
@@ -95,3 +162,15 @@ Edit `~/.claude/instinct-learning/config.json` to customize:
 - Observations stay local on your machine
 - Only instincts (patterns) can be exported
 - No actual code or conversation content is shared
+
+## Testing
+
+```bash
+# Run all tests
+./tests/run_all.sh
+
+# Run specific test suites
+python3 tests/test_instinct_cli.py -v
+python3 tests/test_hooks.py -v
+python3 tests/test_integration.py -v
+```

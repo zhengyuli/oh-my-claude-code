@@ -10,7 +10,7 @@ Display all learned instincts grouped by domain with confidence scores.
 ## Usage
 
 ```
-/instinct:status
+/status
 ```
 
 ## What It Shows
@@ -54,5 +54,5 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py status
 
 ## Related Commands
 
-- `/instinct:analyze` - Trigger pattern analysis
-- `/instinct:export` - Export instincts for sharing
+- `/analyze` - Trigger pattern analysis
+- `/export` - Export instincts for sharing

@@ -10,7 +10,7 @@ Analyze instincts and cluster related ones into reusable capabilities.
 ## Usage
 
 ```
-/instinct:evolve [--generate]
+/evolve [--generate]
 ```
 
 ## Options
@@ -61,5 +61,5 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py evolve [--generate]
 
 ## Related Commands
 
-- `/instinct:status` - View all instincts
-- `/instinct:analyze` - Create new instincts
+- `/status` - View all instincts
+- `/analyze` - Create new instincts
