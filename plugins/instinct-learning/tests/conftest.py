@@ -4,8 +4,14 @@ import pytest
 import tempfile
 import shutil
 import json
+import sys
 from pathlib import Path
 from datetime import datetime
+
+# Add scripts directory to Python path for imports
+scripts_dir = Path(__file__).parent.parent / 'scripts'
+if str(scripts_dir) not in sys.path:
+    sys.path.insert(0, str(scripts_dir))
 
 
 @pytest.fixture
