@@ -73,22 +73,6 @@
           "description": "Maximum number of instincts to retain"
         }
       }
-    },
-    "evolution": {
-      "type": "object",
-      "description": "Evolution settings",
-      "properties": {
-        "cluster_threshold": {
-          "type": "integer",
-          "default": 3,
-          "description": "Minimum instincts required for clustering"
-        },
-        "auto_evolve": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable automatic evolution"
-        }
-      }
     }
   }
 }

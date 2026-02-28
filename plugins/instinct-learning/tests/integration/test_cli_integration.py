@@ -98,21 +98,6 @@ class TestCLIIntegration:
         content = export_file.read_text()
         assert 'test-instinct' in content
 
-    def test_evolve_with_insufficient_instincts(self, temp_data_dir, temp_home):
-        """Test evolve command with insufficient instincts."""
-        env = os.environ.copy()
-        env['HOME'] = str(temp_home)
-        env['INSTINCT_LEARNING_DATA_DIR'] = str(temp_data_dir)
-
-        result = subprocess.run(
-            [sys.executable, 'scripts/instinct_cli.py', 'evolve'],
-            capture_output=True,
-            text=True,
-            cwd=Path(__file__).parent.parent.parent,
-            env=env
-        )
-        assert 'at least 3' in result.stdout.lower() or 'need' in result.stdout.lower()
-
     def test_decay_command_output(self, temp_data_dir, temp_home, sample_instinct_yaml):
         """Test decay command shows output."""
         env = os.environ.copy()
@@ -234,66 +219,6 @@ Git instinct.
         exported = export_file.read_text()
         assert 'testing-instinct' in exported
         assert 'git-instinct' not in exported
-
-    def test_evolve_with_enough_instincts(self, temp_data_dir, temp_home):
-        """Test evolve command with sufficient instincts."""
-        env = os.environ.copy()
-        env['HOME'] = str(temp_home)
-        env['INSTINCT_LEARNING_DATA_DIR'] = str(temp_data_dir)
-
-        import_file = temp_data_dir / 'many.yaml'
-        import_content = '''---
-id: evolve-test-1
-trigger: "when writing tests"
-confidence: 0.85
-domain: testing
----
-Test instinct 1.
-
----
-id: evolve-test-2
-trigger: "when writing tests"
-confidence: 0.80
-domain: testing
----
-Test instinct 2.
-
----
-id: evolve-test-3
-trigger: "when writing tests"
-confidence: 0.75
-domain: testing
----
-Test instinct 3.
-
----
-id: evolve-test-4
-trigger: "when committing code"
-confidence: 0.70
-domain: git
----
-Git instinct.
-'''
-        import_file.write_text(import_content)
-
-        subprocess.run(
-            [sys.executable, 'scripts/instinct_cli.py', 'import',
-             str(import_file), '--force'],
-            capture_output=True,
-            cwd=Path(__file__).parent.parent.parent,
-            env=env
-        )
-
-        # Evolve should work now
-        result = subprocess.run(
-            [sys.executable, 'scripts/instinct_cli.py', 'evolve'],
-            capture_output=True,
-            text=True,
-            cwd=Path(__file__).parent.parent.parent,
-            env=env
-        )
-        assert result.returncode == 0
-        assert 'EVOLVE ANALYSIS' in result.stdout
 
     def test_duplicate_import_handling(self, temp_data_dir, temp_home):
         """Test that duplicate imports are handled correctly."""

@@ -139,10 +139,6 @@ SAMPLE_CONFIG = {
         "auto_approve_threshold": 0.7,
         "confidence_decay_rate": 0.02,
         "max_instincts": 100
-    },
-    "evolution": {
-        "cluster_threshold": 3,
-        "auto_evolve": False
     }
 }
 
