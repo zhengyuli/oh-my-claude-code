@@ -46,7 +46,9 @@ Display all learned instincts grouped by domain with confidence scores.
 
 ## Implementation
 
-This command calls the CLI tool:
+**IMPORTANT: This command ONLY runs the CLI tool. Do NOT dispatch any agents or perform any analysis.**
+
+Execute this command directly:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py status
@@ -54,5 +56,5 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py status
 
 ## Related Commands
 
-- `/instinct:analyze` - Trigger pattern analysis
+- `/instinct:analyze` - Trigger pattern analysis (uses observer agent)
 - `/instinct:export` - Export instincts for sharing

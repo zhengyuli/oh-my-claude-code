@@ -50,7 +50,9 @@ Always write tests before implementation.
 
 ## Implementation
 
-This command calls the CLI tool:
+**IMPORTANT: This command ONLY runs the CLI tool. Do NOT dispatch any agents or perform any analysis.**
+
+Execute this command directly:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py export [options]

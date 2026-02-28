@@ -53,7 +53,9 @@ Potential skill clusters found: 3
 
 ## Implementation
 
-This command calls the CLI tool:
+**IMPORTANT: This command ONLY runs the CLI tool. Do NOT dispatch any agents or perform any analysis.**
+
+Execute this command directly:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py evolve [--generate]
@@ -62,4 +64,4 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py evolve [--generate]
 ## Related Commands
 
 - `/instinct:status` - View all instincts
-- `/instinct:analyze` - Create new instincts
+- `/instinct:analyze` - Create new instincts (uses observer agent)

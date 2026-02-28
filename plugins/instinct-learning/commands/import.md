@@ -47,7 +47,9 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py import https://example.com
 
 ## Implementation
 
-This command calls the CLI tool:
+**IMPORTANT: This command ONLY runs the CLI tool. Do NOT dispatch any agents or perform any analysis.**
+
+Execute this command directly:
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py import <source> [options]
