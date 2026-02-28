@@ -1,6 +1,6 @@
 {
   "name": "instinct-learning",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Instinct-based learning system that observes your sessions, learns atomic behaviors with confidence scoring, and evolves them into skills/commands/agents",
   "author": {
     "name": "zhengyu.li",
@@ -8,5 +8,5 @@
   },
   "repository": "https://github.com/zhengyuli/oh-my-claude-code",
   "license": "MIT",
-  "keywords": ["learning", "patterns", "observation", "evolution", "productivity"]
+    "keywords": ["instinct", "learning", "patterns", "observation", "evolution", "productivity", "hooks", "agents"]
 }

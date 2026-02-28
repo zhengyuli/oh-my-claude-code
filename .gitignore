@@ -23,3 +23,6 @@ Thumbs.db
 
 # Plugin data
 *.jsonl
+
+# Legacy skill directories (refactored to plugins)
+plugins/continuous-learning-v2/

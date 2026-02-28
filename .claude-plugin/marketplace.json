@@ -10,7 +10,7 @@
     {
       "name": "instinct-learning",
       "description": "Instinct-based learning system that observes sessions, learns patterns, and evolves behaviors into skills/commands/agents",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "author": {
         "name": "zhengyu.li",
         "url": "https://github.com/zhengyuli"

@@ -20,8 +20,13 @@ from datetime import datetime
 from collections import defaultdict
 from typing import Optional, Union
 
-# Configuration
-DATA_DIR = Path.home() / ".claude" / "instinct-learning"
+# Configuration - respect INSTINCT_LEARNING_DATA_DIR environment variable
+_data_dir_env = os.environ.get('INSTINCT_LEARNING_DATA_DIR')
+if _data_dir_env:
+    DATA_DIR = Path(_data_dir_env)
+else:
+    DATA_DIR = Path.home() / ".claude" / "instinct-learning"
+
 INSTINCTS_DIR = DATA_DIR / "instincts"
 PERSONAL_DIR = INSTINCTS_DIR / "personal"
 INHERITED_DIR = INSTINCTS_DIR / "inherited"
@@ -119,7 +124,7 @@ def cmd_status(args):
     print(f"{'='*60}\n")
 
     personal = [i for i in instincts if i.get('_source_type') == 'personal']
-    inherited = [i for i in instincts if i.g('_source_type') == 'inherited']
+    inherited = [i for i in instincts if i.get('_source_type') == 'inherited']
     print(f"  Personal:  {len(personal)}")
     print(f"  Inherited: {len(inherited)}")
     print()
