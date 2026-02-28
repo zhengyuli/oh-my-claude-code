@@ -1,4 +1,11 @@
 # tests/unit/test_cli_prune.py
+"""
+Unit tests for prune logic patterns.
+
+NOTE: Full CLI command testing (subprocess execution, file operations, dry-run)
+is in integration tests (test_cli_prune_integration.sh). These tests verify the
+core sorting and filtering logic patterns used by the prune command.
+"""
 import pytest
 from instinct_cli import calculate_effective_confidence
 

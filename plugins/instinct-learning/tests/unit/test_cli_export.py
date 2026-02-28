@@ -1,4 +1,11 @@
 # tests/unit/test_cli_export.py
+"""
+Unit tests for export formatting logic.
+
+NOTE: Full CLI command testing (subprocess execution, stdout parsing) is in
+integration tests (test_cli_export_integration.sh). These tests verify the
+core data transformation logic patterns used by the export command.
+"""
 import pytest
 
 @pytest.mark.unit
