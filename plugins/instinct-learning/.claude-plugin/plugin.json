@@ -1,6 +1,5 @@
 {
   "name": "instinct-learning",
-  "displayName": "Instinct Learning",
   "description": "Instinct-based learning system that observes your sessions, learns atomic behaviors with confidence scoring, and evolves them into skills/commands/agents",
   "version": "1.0.0",
   "author": {
@@ -14,30 +13,5 @@
   "skills": "./skills/",
   "agents": "./agents/",
   "commands": "./commands/",
-  "hooks": {
-    "PreToolUse": [{
-      "matcher": "*",
-      "hooks": [{
-        "type": "command",
-        "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.sh",
-        "async": true
-      }]
-    }],
-    "PostToolUse": [{
-      "matcher": "*",
-      "hooks": [{
-        "type": "command",
-        "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-tool.sh",
-        "async": true
-      }]
-    }],
-    "Stop": [{
-      "matcher": "*",
-      "hooks": [{
-        "type": "command",
-        "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh",
-        "async": true
-      }]
-    }]
-  }
+  "hooks": "./hooks/hooks.json"
 }
