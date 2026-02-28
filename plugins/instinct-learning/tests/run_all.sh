@@ -79,6 +79,7 @@ echo ""
 
 run_test "tests/test_instinct_cli.py"
 run_test "tests/test_observe_sh.py"
+run_test "tests/test_hooks.py"
 run_test "tests/test_integration.py"
 
 # Test hook script directly
