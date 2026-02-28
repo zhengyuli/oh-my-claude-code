@@ -1,9 +1,19 @@
 {
   "name": "instinct-learning",
-  "version": "1.0.0",
+  "displayName": "Instinct Learning",
   "description": "Instinct-based learning system that observes your sessions, learns atomic behaviors with confidence scoring, and evolves them into skills/commands/agents",
-  "author": "zhengyu.li",
+  "version": "1.0.0",
+  "author": {
+    "name": "zhengyu.li",
+    "url": "https://github.com/zhengyuli"
+  },
+  "homepage": "https://github.com/zhengyuli/oh-my-claude-code",
+  "repository": "https://github.com/zhengyuli/oh-my-claude-code",
   "license": "MIT",
+  "keywords": ["learning", "patterns", "observation", "evolution", "productivity"],
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "commands": "./commands/",
   "hooks": {
     "PreToolUse": [{
       "matcher": "*",
@@ -29,18 +39,5 @@
         "async": true
       }]
     }]
-  },
-  "commands": [
-    {"name": "instinct:status", "source": "commands/status.md"},
-    {"name": "instinct:evolve", "source": "commands/evolve.md"},
-    {"name": "instinct:export", "source": "commands/export.md"},
-    {"name": "instinct:import", "source": "commands/import.md"},
-    {"name": "instinct:session", "source": "commands/session.md"}
-  ],
-  "skills": [
-    {"name": "session-memory", "source": "skills/session-memory.md"}
-  ],
-  "agents": [
-    {"name": "observer", "source": "agents/observer.md"}
-  ]
+  }
 }
