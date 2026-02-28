@@ -11,21 +11,26 @@ You analyze tool usage observations and create instinct files.
 
 ## Task
 
-Read observations from `~/.claude/instinct-learning/observations.jsonl`, detect patterns, and create/update instinct files in `~/.claude/instinct-learning/instincts/personal/`.
+Read observations from archived files in `~/.claude/instinct-learning/observations/`, detect patterns, and create/update instinct files in `~/.claude/instinct-learning/instincts/personal/`.
 
 ## Process
 
-### 1. Load Observations
+### 1. Load Archived Observations
 
-Check and read the observations file:
+Check and read **archived observation files only** (not the active file being written to):
 
 ```bash
-# Check file exists and count
-wc -l ~/.claude/instinct-learning/observations.jsonl
+# List available archives
+ls -la ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null
 
-# Read recent observations
-tail -100 ~/.claude/instinct-learning/observations.jsonl
+# Count observations in archives
+wc -l ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null
+
+# Read all archived observations
+cat ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null
 ```
+
+**IMPORTANT**: Do NOT read `observations.jsonl` (the active file). Only process archived files (`observations.1.jsonl`, `observations.2.jsonl`, etc.) to ensure complete observation records.
 
 **Observation format**:
 ```json
@@ -43,6 +48,15 @@ Look for these patterns (require 3+ observations):
 | Error Resolutions | Error output → fix sequence, repeated resolution | "When encountering error X, try Y" |
 | Repeated Workflows | Same tool sequence across sessions | "When doing X, follow steps Y, Z, W" |
 | Tool Preferences | High frequency, consistent choices | "When needing X, use tool Y" |
+| File Patterns | Same files modified in sequence, file extensions that co-occur | "When modifying X, also check/update Y" |
+
+**File Pattern Detection**:
+- Track file paths from Edit/Write operations within the same session
+- Identify files modified within 5-minute windows
+- Look for patterns like:
+  - Component + test file pairs (*.tsx → *.test.tsx)
+  - Config + implementation pairs (*.json → *.ts)
+  - Related module pairs (service → repository)
 
 ### 3. Calculate Confidence
 
@@ -65,6 +79,7 @@ confidence: <0.3-0.9>
 domain: "<category>"
 source: "session-observation"
 created: "<ISO-timestamp>"
+last_observed: "<ISO-timestamp>"
 evidence_count: <number>
 ---
 
@@ -80,6 +95,11 @@ evidence_count: <number>
 
 **Domains**: `code-style`, `testing`, `git`, `debugging`, `workflow`, `architecture`
 
+**Updating existing instincts**: When a pattern matches an existing instinct:
+1. Increase confidence: `min(0.9, current + 0.05)`
+2. Update `last_observed` to current timestamp
+3. Increment `evidence_count`
+
 **Example**:
 ```markdown
 ---
@@ -89,6 +109,7 @@ confidence: 0.7
 domain: "workflow"
 source: "session-observation"
 created: "2026-02-28T10:30:00Z"
+last_observed: "2026-02-28T15:45:00Z"
 evidence_count: 8
 ---
 
@@ -127,10 +148,53 @@ Report results:
 **Patterns detected**: <count>
 **Instincts created**: <count>
 **Instincts updated**: <count>
+**Instincts pruned**: <count> (if any)
 
 ### Created Instincts
 - <id> (confidence: <score>) - <trigger>
 
 ### Skipped (below threshold)
 - <description> (<count> observations, needs 3+)
+
+### Pruned Instincts (if any)
+- <id> (effective confidence: <score>) - archived
 ```
+
+### 5. Cleanup Archives
+
+After successful analysis, remove the analyzed archive files:
+
+```bash
+# Count observations analyzed
+total_obs=$(cat ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null | wc -l)
+echo "Analyzed $total_obs observations from archives"
+
+# Remove analyzed archives
+rm ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null
+echo "Archives cleaned up"
+```
+
+This ensures we don't re-analyze the same observations in future runs.
+
+### 6. Enforce Max Instincts
+
+After creating/updating instincts, check if count exceeds limit and prune if needed:
+
+```bash
+# Count current instincts
+PERSONAL_DIR=~/.claude/instinct-learning/instincts/personal
+INSTINCT_COUNT=$(find "$PERSONAL_DIR" \( -name "*.md" -o -name "*.yaml" -o -name "*.yml" \) 2>/dev/null | wc -l | tr -d ' ')
+
+echo "Current instincts: $INSTINCT_COUNT"
+
+# If over limit (100), run prune
+if [ "$INSTINCT_COUNT" -gt 100 ]; then
+  echo "Exceeds limit (100), pruning low-confidence instincts..."
+  python3 ~/.claude/plugins/instinct-learning/scripts/instinct_cli.py prune --max-instincts 100
+fi
+```
+
+**Pruning behavior:**
+- Uses effective confidence (with time-based decay) for ranking
+- Archives (not deletes) lowest-confidence instincts to `~/.claude/instinct-learning/instincts/archived/`
+- Preserves the 100 highest-confidence instincts

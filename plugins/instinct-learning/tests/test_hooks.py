@@ -114,7 +114,7 @@ class TestObserveHookCapture(unittest.TestCase):
 
     def _get_observations(self):
         """Helper to read observations file."""
-        obs_file = self.data_dir / 'observations.jsonl'
+        obs_file = self.data_dir / 'observations' / 'observations.jsonl'
         if not obs_file.exists():
             return []
         observations = []
@@ -391,7 +391,7 @@ class TestObserveHookEdgeCases(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
 
         # Should not create observations file
-        obs_file = self.data_dir / 'observations.jsonl'
+        obs_file = self.data_dir / 'observations' / 'observations.jsonl'
         self.assertFalse(obs_file.exists())
 
     def test_creates_data_directory_if_missing(self):
@@ -438,10 +438,12 @@ class TestObserveHookFileRotation(unittest.TestCase):
 
     def test_archive_directory_created_on_rotation(self):
         """Test that archive directory is created when rotation occurs."""
-        # Create a large observations file
-        obs_file = self.data_dir / 'observations.jsonl'
+        # Create observations directory and large file
+        obs_dir = self.data_dir / 'observations'
+        obs_dir.mkdir(parents=True, exist_ok=True)
+        obs_file = obs_dir / 'observations.jsonl'
 
-        # Create content larger than 10MB (simulated)
+        # Create content larger than 2MB (the new rotation threshold)
         large_content = []
         for i in range(10000):
             obs = json.dumps({
@@ -473,9 +475,9 @@ class TestObserveHookFileRotation(unittest.TestCase):
             env=env
         )
 
-        # Check if archive directory was created (if file was large enough)
-        archive_dir = self.data_dir / 'observations.archive'
-        # Note: This test may not trigger rotation if file isn't > 10MB
+        # Check if archive file was created (if file was large enough)
+        archive_file = obs_dir / 'observations.1.jsonl'
+        # Note: This test may not trigger rotation if file isn't > 2MB
         # The hook uses `du -m` to check size
 
 

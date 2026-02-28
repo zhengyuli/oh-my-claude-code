@@ -15,8 +15,13 @@
         },
         "max_file_size_mb": {
           "type": "integer",
+          "default": 2,
+          "description": "Maximum observations file size before rotation (MB)"
+        },
+        "max_archive_files": {
+          "type": "integer",
           "default": 10,
-          "description": "Maximum observations file size before archiving"
+          "description": "Maximum number of archived observation files to keep"
         },
         "archive_after_days": {
           "type": "integer",

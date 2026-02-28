@@ -9,11 +9,14 @@
 set -e
 
 DATA_DIR="${HOME}/.claude/instinct-learning"
-OBSERVATIONS_FILE="${DATA_DIR}/observations.jsonl"
-MAX_FILE_SIZE_MB=10
+OBS_DIR="${DATA_DIR}/observations"
+OBSERVATIONS_FILE="${OBS_DIR}/observations.jsonl"
+MAX_FILE_SIZE_MB=2
+MAX_ARCHIVE_FILES=10
 
-# Ensure directory exists
+# Ensure directories exist
 mkdir -p "$DATA_DIR"
+mkdir -p "$OBS_DIR"
 
 # Skip if disabled
 if [ -f "$DATA_DIR/disabled" ]; then
@@ -76,13 +79,22 @@ if [ "$PARSED_OK" != "True" ]; then
   exit 0
 fi
 
-# Archive if file too large
+# Rotate if file too large (numbered archive system)
 if [ -f "$OBSERVATIONS_FILE" ]; then
   file_size_mb=$(du -m "$OBSERVATIONS_FILE" 2>/dev/null | cut -f1)
   if [ "${file_size_mb:-0}" -ge "$MAX_FILE_SIZE_MB" ]; then
-    archive_dir="${DATA_DIR}/observations.archive"
-    mkdir -p "$archive_dir"
-    mv "$OBSERVATIONS_FILE" "$archive_dir/observations-$(date +%Y%m%d-%H%M%S).jsonl"
+    # Delete oldest archive if at limit
+    if [ -f "${OBS_DIR}/observations.${MAX_ARCHIVE_FILES}.jsonl" ]; then
+      rm "${OBS_DIR}/observations.${MAX_ARCHIVE_FILES}.jsonl"
+    fi
+    # Rotate existing archives (9->10, 8->9, ..., 1->2)
+    for i in $(seq $((MAX_ARCHIVE_FILES-1)) -1 1); do
+      if [ -f "${OBS_DIR}/observations.${i}.jsonl" ]; then
+        mv "${OBS_DIR}/observations.${i}.jsonl" "${OBS_DIR}/observations.$((i+1)).jsonl"
+      fi
+    done
+    # Rotate current to .1
+    mv "$OBSERVATIONS_FILE" "${OBS_DIR}/observations.1.jsonl"
   fi
 fi
 

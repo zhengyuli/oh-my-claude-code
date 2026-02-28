@@ -108,7 +108,7 @@ class TestObserveHook(unittest.TestCase):
         )
 
         # Check observations file was created
-        obs_file = self.data_dir / 'observations.jsonl'
+        obs_file = self.data_dir / 'observations' / 'observations.jsonl'
         self.assertTrue(obs_file.exists(), f"observations.jsonl should be created at {obs_file}")
 
     def test_hook_writes_valid_json(self):
@@ -131,7 +131,7 @@ class TestObserveHook(unittest.TestCase):
             env=env
         )
 
-        obs_file = self.data_dir / 'observations.jsonl'
+        obs_file = self.data_dir / 'observations' / 'observations.jsonl'
         if obs_file.exists():
             content = obs_file.read_text()
             lines = [l for l in content.strip().split('\n') if l]
@@ -200,7 +200,7 @@ class TestObserveHook(unittest.TestCase):
         )
 
         # Should exit without writing
-        obs_file = self.data_dir / 'observations.jsonl'
+        obs_file = self.data_dir / 'observations' / 'observations.jsonl'
         self.assertFalse(obs_file.exists(), "Should not create observations when disabled")
 
 

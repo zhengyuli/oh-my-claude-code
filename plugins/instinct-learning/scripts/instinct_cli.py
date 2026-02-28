@@ -7,6 +7,8 @@ Commands:
   import   - Import instincts from file or URL
   export   - Export instincts to file
   evolve   - Cluster instincts into skills/commands/agents
+  prune    - Enforce max instincts limit by archiving low-confidence ones
+  decay    - Show effective confidence after time-based decay
 
 Note: Use /instinct:analyze command to dispatch the observer agent
 for AI-based pattern detection from observations.
@@ -33,12 +35,55 @@ else:
 INSTINCTS_DIR = DATA_DIR / "instincts"
 PERSONAL_DIR = INSTINCTS_DIR / "personal"
 INHERITED_DIR = INSTINCTS_DIR / "inherited"
+ARCHIVED_DIR = INSTINCTS_DIR / "archived"
 EVOLVED_DIR = DATA_DIR / "evolved"
 OBSERVATIONS_FILE = DATA_DIR / "observations.jsonl"
 
+# Default settings
+DEFAULT_MAX_INSTINCTS = 100
+DEFAULT_DECAY_RATE = 0.02  # Weekly decay rate
+
 # Ensure directories exist
-for d in [PERSONAL_DIR, INHERITED_DIR, EVOLVED_DIR / "skills", EVOLVED_DIR / "commands", EVOLVED_DIR / "agents"]:
+for d in [PERSONAL_DIR, INHERITED_DIR, ARCHIVED_DIR, EVOLVED_DIR / "skills", EVOLVED_DIR / "commands", EVOLVED_DIR / "agents"]:
     d.mkdir(parents=True, exist_ok=True)
+
+
+def calculate_effective_confidence(instinct: dict, decay_rate: float = DEFAULT_DECAY_RATE) -> float:
+    """Calculate confidence with time-based decay.
+
+    Decay is applied at decision time based on last_observed timestamp.
+    This allows reinforcement when patterns reoccur.
+
+    Args:
+        instinct: Instinct dict with confidence and last_observed fields
+        decay_rate: Weekly decay rate (default 0.02 = 2% per week)
+
+    Returns:
+        Effective confidence after decay (floored at 0.3)
+    """
+    base_confidence = instinct.get('confidence', 0.5)
+    last_observed = instinct.get('last_observed', instinct.get('created', ''))
+
+    if not last_observed:
+        return base_confidence
+
+    try:
+        # Parse ISO timestamp
+        last_str = last_observed.replace('Z', '+00:00')
+        if '+' not in last_str and '-' not in last_str[-6:]:
+            last_str = last_str + '+00:00'
+        last = datetime.fromisoformat(last_str)
+        now = datetime.now(last.tzinfo) if last.tzinfo else datetime.now()
+
+        # Calculate weeks since last observation
+        delta = now - last
+        weeks_since = max(0, delta.days / 7)
+
+        # Apply decay
+        decay = decay_rate * weeks_since
+        return max(0.3, base_confidence - decay)
+    except (ValueError, TypeError):
+        return base_confidence
 
 
 # Instinct Parser
@@ -455,6 +500,124 @@ def _generate_evolved(skill_candidates: list, workflow_instincts: list, agent_ca
     return generated
 
 
+def enforce_max_instincts(max_count: int = DEFAULT_MAX_INSTINCTS, dry_run: bool = False) -> int:
+    """Ensure instinct count stays within limit by archiving low-confidence ones.
+
+    Args:
+        max_count: Maximum number of instincts to keep
+        dry_run: If True, only report what would be archived
+
+    Returns:
+        Number of instincts archived
+    """
+    import shutil
+
+    instincts = load_all_instincts()
+
+    if len(instincts) <= max_count:
+        return 0
+
+    # Calculate effective confidence (with decay)
+    for inst in instincts:
+        inst['effective_confidence'] = calculate_effective_confidence(inst)
+
+    # Sort by effective confidence (highest first)
+    instincts.sort(key=lambda x: -x.get('effective_confidence', 0.5))
+
+    # Identify instincts to archive (lowest confidence)
+    to_archive = instincts[max_count:]
+
+    if dry_run:
+        print(f"Would archive {len(to_archive)} instincts (max: {max_count}):")
+        for inst in to_archive:
+            eff = inst.get('effective_confidence', 0.5)
+            print(f"  - {inst.get('id')} (effective confidence: {eff:.2f})")
+        return len(to_archive)
+
+    # Archive the low-confidence instincts
+    for inst in to_archive:
+        src = Path(inst['_source_file'])
+        dst = ARCHIVED_DIR / src.name
+
+        # Handle name conflicts
+        if dst.exists():
+            timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+            dst = ARCHIVED_DIR / f"{src.stem}-{timestamp}{src.suffix}"
+
+        shutil.move(str(src), str(dst))
+        eff = inst.get('effective_confidence', 0.5)
+        print(f"Archived: {inst.get('id')} (effective confidence: {eff:.2f})")
+
+    return len(to_archive)
+
+
+def cmd_prune(args):
+    """Enforce max instincts limit by archiving low-confidence ones."""
+    max_instincts = args.max_instincts or DEFAULT_MAX_INSTINCTS
+
+    instincts = load_all_instincts()
+    print(f"\nCurrent instincts: {len(instincts)}")
+    print(f"Max limit: {max_instincts}")
+
+    if len(instincts) <= max_instincts:
+        print("\nNo pruning needed - within limit.")
+        return 0
+
+    if args.dry_run:
+        print(f"\n[DRY RUN] Preview of archiving:")
+    else:
+        print(f"\nArchiving {len(instincts) - max_instincts} lowest-confidence instincts...")
+
+    archived = enforce_max_instincts(max_instincts, dry_run=args.dry_run)
+
+    if not args.dry_run and archived:
+        print(f"\nArchived {archived} instincts to {ARCHIVED_DIR}")
+    return 0
+
+
+def cmd_decay(args):
+    """Show effective confidence after decay for all instincts."""
+    instincts = load_all_instincts()
+
+    if not instincts:
+        print("No instincts found.")
+        return 0
+
+    decay_rate = args.decay_rate if args.decay_rate is not None else DEFAULT_DECAY_RATE
+
+    # Calculate effective confidence for each
+    results = []
+    for inst in instincts:
+        base = inst.get('confidence', 0.5)
+        effective = calculate_effective_confidence(inst, decay_rate)
+        decay_amount = base - effective
+        results.append({
+            'id': inst.get('id', 'unnamed'),
+            'base': base,
+            'effective': effective,
+            'decay': decay_amount,
+            'last_observed': inst.get('last_observed', inst.get('created', 'unknown'))
+        })
+
+    # Sort by effective confidence (lowest first - most decayed)
+    results.sort(key=lambda x: x['effective'])
+
+    print(f"\n{'='*70}")
+    print(f"  CONFIDENCE DECAY ANALYSIS (rate: {decay_rate:.2%}/week)")
+    print(f"{'='*70}\n")
+
+    for r in results:
+        if r['decay'] > 0.01:
+            print(f"{r['id']}:")
+            print(f"  Base: {r['base']:.2f} → Effective: {r['effective']:.2f} (decay: -{r['decay']:.2f})")
+            print(f"  Last observed: {r['last_observed']}")
+        else:
+            print(f"{r['id']}: {r['base']:.2f} (no decay)")
+
+    print(f"\n{'='*70}\n")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description='Instinct CLI for Instinct-Learning Plugin')
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
@@ -470,6 +633,11 @@ def main():
     export_parser.add_argument('--min-confidence', type=float, help='Minimum confidence')
     evolve_parser = subparsers.add_parser('evolve', help='Analyze and evolve instincts')
     evolve_parser.add_argument('--generate', action='store_true', help='Generate evolved structures')
+    prune_parser = subparsers.add_parser('prune', help='Enforce max instincts limit')
+    prune_parser.add_argument('--max-instincts', type=int, help=f'Maximum instincts to keep (default: {DEFAULT_MAX_INSTINCTS})')
+    prune_parser.add_argument('--dry-run', action='store_true', help='Preview without archiving')
+    decay_parser = subparsers.add_parser('decay', help='Show effective confidence after decay')
+    decay_parser.add_argument('--decay-rate', type=float, help=f'Weekly decay rate (default: {DEFAULT_DECAY_RATE})')
     args = parser.parse_args()
     if args.command == 'status':
         return cmd_status(args)
@@ -479,6 +647,10 @@ def main():
         return cmd_export(args)
     elif args.command == 'evolve':
         return cmd_evolve(args)
+    elif args.command == 'prune':
+        return cmd_prune(args)
+    elif args.command == 'decay':
+        return cmd_decay(args)
     else:
         parser.print_help()
         return 1
