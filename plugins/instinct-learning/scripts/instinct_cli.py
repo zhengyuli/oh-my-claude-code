@@ -81,7 +81,7 @@ def load_all_instincts() -> list[dict]:
         yaml_files = sorted(
             set(directory.glob("*.yaml"))
             | set(directory.glob("*.yml"))
-            | set(directory.glob("*.md")
+            | set(directory.glob("*.md"))
         )
         for file in yaml_files:
             try:
