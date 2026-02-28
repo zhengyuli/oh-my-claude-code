@@ -1,0 +1,29 @@
+{
+  "description": "Instinct-learning hooks for observation capture",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/observe.sh pre",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/observe.sh post",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
