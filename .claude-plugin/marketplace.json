@@ -1,22 +1,23 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "oh-my-claude-code",
+  "description": "A collection of Claude Code plugins for enhanced productivity",
   "owner": {
     "name": "zhengyu.li",
     "url": "https://github.com/zhengyuli"
   },
-  "metadata": {
-    "description": "A collection of Claude Code plugins for enhanced productivity",
-    "version": "1.0.0"
-  },
   "plugins": [
     {
       "name": "instinct-learning",
-      "source": {
-        "source": "directory",
-        "path": "./plugins/instinct-learning"
-      },
       "description": "Instinct-based learning system that observes sessions, learns patterns, and evolves behaviors into skills/commands/agents",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "author": {
+        "name": "zhengyu.li",
+        "url": "https://github.com/zhengyuli"
+      },
+      "source": "./plugins/instinct-learning",
+      "category": "productivity",
+      "strict": false
     }
   ]
 }
