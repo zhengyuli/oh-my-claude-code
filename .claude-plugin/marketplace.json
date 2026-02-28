@@ -1,0 +1,16 @@
+{
+  "name": "oh-my-claude-code",
+  "owner": {
+    "name": "zhengyu.li",
+    "url": "https://github.com/zhengyuli"
+  },
+  "description": "A collection of Claude Code plugins for enhanced productivity",
+  "plugins": [
+    {
+      "name": "instinct-learning",
+      "source": "./plugins/instinct-learning",
+      "description": "Instinct-based learning system that observes sessions, learns patterns, and evolves behaviors into skills/commands/agents",
+      "version": "1.0.0"
+    }
+  ]
+}

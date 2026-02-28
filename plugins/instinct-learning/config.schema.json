@@ -1,0 +1,205 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Instinct Learning Configuration",
+  "description": "Configuration schema for the instinct-learning plugin",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Configuration schema version"
+    },
+    "observation": {
+      "type": "object",
+      "description": "Observation capture settings",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable observation capture"
+        },
+        "store_path": {
+          "type": "string",
+          "description": "Path to store observations (default: ~/.claude/instinct-learning)"
+        },
+        "max_file_size_mb": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum observation file size in MB before archiving"
+        },
+        "archive_after_days": {
+          "type": "integer",
+          "default": 7,
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Days to keep archived observations before deletion"
+        },
+        "capture_tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["Edit", "Write", "Bash", "Read", "Grep", "Glob", "WebFetch", "WebSearch", "Task", "Skill"]
+          },
+          "default": ["Edit", "Write", "Bash", "Read", "Grep", "Glob"],
+          "description": "Tools to capture observations from"
+        },
+        "ignore_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["TodoWrite", "TaskCreate", "TaskUpdate", "TaskList", "AskUserQuestion"],
+          "description": "Tools to ignore (no observation capture)"
+        },
+        "max_prompt_length": {
+          "type": "integer",
+          "default": 500,
+          "minimum": 100,
+          "maximum": 5000,
+          "description": "Maximum characters to capture from tool input"
+        },
+        "max_response_length": {
+          "type": "integer",
+          "default": 1000,
+          "minimum": 100,
+          "maximum": 10000,
+          "description": "Maximum characters to capture from tool output"
+        }
+      },
+      "additionalProperties": false
+    },
+    "instincts": {
+      "type": "object",
+      "description": "Instinct management settings",
+      "properties": {
+        "personal_path": {
+          "type": "string",
+          "description": "Path for personal (auto-learned) instincts"
+        },
+        "shared_path": {
+          "type": "string",
+          "description": "Path for shared (imported) instincts"
+        },
+        "min_confidence": {
+          "type": "number",
+          "default": 0.3,
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "description": "Minimum confidence threshold for instincts"
+        },
+        "auto_approve_threshold": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0.5,
+          "maximum": 1.0,
+          "description": "Confidence level for auto-approving instincts"
+        },
+        "confidence_decay_rate": {
+          "type": "number",
+          "default": 0.02,
+          "minimum": 0,
+          "maximum": 0.1,
+          "description": "Daily confidence decay rate for unused instincts"
+        },
+        "max_instincts_per_domain": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 5,
+          "maximum": 100,
+          "description": "Maximum instincts to keep per domain"
+        }
+      },
+      "additionalProperties": false
+    },
+    "observer": {
+      "type": "object",
+      "description": "Observer agent settings",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable background observation analysis"
+        },
+        "model": {
+          "type": "string",
+          "const": "haiku",
+          "default": "haiku",
+          "description": "Model to use for pattern detection (haiku for cost efficiency)"
+        },
+        "run_interval_minutes": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 60,
+          "description": "Interval between observer runs in minutes"
+        },
+        "max_patterns_per_cycle": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum patterns to process per observer cycle"
+        },
+        "patterns_to_detect": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["repeated_sequences", "error_fix", "user_preferences", "domain_patterns", "user_corrections"]
+          },
+          "default": ["repeated_sequences", "error_fix", "user_preferences", "domain_patterns"],
+          "description": "Pattern types to detect"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evolution": {
+      "type": "object",
+      "description": "Evolution settings",
+      "properties": {
+        "cluster_threshold": {
+          "type": "integer",
+          "default": 3,
+          "minimum": 2,
+          "maximum": 10,
+          "description": "Minimum instincts required to form a cluster"
+        },
+        "min_avg_confidence": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0.5,
+          "maximum": 1.0,
+          "description": "Minimum average confidence for evolution"
+        },
+        "evolved_path": {
+          "type": "string",
+          "description": "Path to store evolved capabilities"
+        }
+      },
+      "additionalProperties": false
+    },
+    "session": {
+      "type": "object",
+      "description": "Session management settings",
+      "properties": {
+        "track_sessions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable session tracking"
+        },
+        "session_count_path": {
+          "type": "string",
+          "description": "Path to store session count"
+        },
+        "memory_enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable session memory skill"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
