@@ -1,5 +1,5 @@
 ---
-name: evolve
+name: instinct:evolve
 description: Cluster instincts into skills, commands, or agents
 ---
 
@@ -10,7 +10,7 @@ Analyze instincts and cluster related ones into reusable capabilities.
 ## Usage
 
 ```
-/evolve [--generate]
+/instinct:evolve [--generate]
 ```
 
 ## Options
@@ -61,5 +61,5 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py evolve [--generate]
 
 ## Related Commands
 
-- `/status` - View all instincts
-- `/analyze` - Create new instincts
+- `/instinct:status` - View all instincts
+- `/instinct:analyze` - Create new instincts

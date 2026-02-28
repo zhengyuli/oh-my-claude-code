@@ -1,5 +1,5 @@
 ---
-name: analyze
+name: instinct:analyze
 description: Analyze observations to detect patterns and create instincts
 ---
 
@@ -10,7 +10,7 @@ Manually trigger pattern analysis on captured observations to create or update i
 ## Usage
 
 ```
-/analyze
+/instinct:analyze
 ```
 
 ## What It Does
@@ -86,7 +86,7 @@ evidence_count: <number>
 ## Example
 
 ```
-User: /analyze
+User: /instinct:analyze
 
 Claude: I'll dispatch the observer agent to analyze your observations.
 
@@ -105,5 +105,5 @@ Created instincts:
 
 ## Related Commands
 
-- `/status` - View all learned instincts
-- `/evolve` - Cluster instincts into capabilities
+- `/instinct:status` - View all learned instincts
+- `/instinct:evolve` - Cluster instincts into capabilities

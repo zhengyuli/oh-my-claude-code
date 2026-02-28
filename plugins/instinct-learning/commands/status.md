@@ -1,5 +1,5 @@
 ---
-name: status
+name: instinct:status
 description: Show all learned instincts with confidence scores
 ---
 
@@ -10,7 +10,7 @@ Display all learned instincts grouped by domain with confidence scores.
 ## Usage
 
 ```
-/status
+/instinct:status
 ```
 
 ## What It Shows
@@ -54,5 +54,5 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py status
 
 ## Related Commands
 
-- `/analyze` - Trigger pattern analysis
-- `/export` - Export instincts for sharing
+- `/instinct:analyze` - Trigger pattern analysis
+- `/instinct:export` - Export instincts for sharing
