@@ -121,8 +121,10 @@ def test_thousands_of_instincts_loading(temp_data_dir):
     scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
     sys.path.insert(0, str(scripts_dir))
     from instinct_cli import load_all_instincts
+    import instinct_cli
 
     instincts_dir = temp_data_dir / 'instincts' / 'personal'
+    inherited_dir = temp_data_dir / 'instincts' / 'inherited'
 
     # Create 100 instinct files
     start_time = time.time()
@@ -150,20 +152,19 @@ Perform test action {i}.
 
     creation_time = time.time() - start_time
 
-    # Load all instincts - need to set environment variable
-    import os
-    old_data_dir = os.environ.get('INSTINCT_LEARNING_DATA_DIR')
-    os.environ['INSTINCT_LEARNING_DATA_DIR'] = str(temp_data_dir)
+    # Patch the directories in instinct_cli module
+    original_personal = instinct_cli.PERSONAL_DIR
+    original_inherited = instinct_cli.INHERITED_DIR
+    instinct_cli.PERSONAL_DIR = instincts_dir
+    instinct_cli.INHERITED_DIR = inherited_dir
 
     load_start = time.time()
     instincts = load_all_instincts()
     load_time = time.time() - load_start
 
-    # Restore old environment
-    if old_data_dir:
-        os.environ['INSTINCT_LEARNING_DATA_DIR'] = old_data_dir
-    else:
-        os.environ.pop('INSTINCT_LEARNING_DATA_DIR', None)
+    # Restore original directories
+    instinct_cli.PERSONAL_DIR = original_personal
+    instinct_cli.INHERITED_DIR = original_inherited
 
     # Verify results
     assert len(instincts) == 100

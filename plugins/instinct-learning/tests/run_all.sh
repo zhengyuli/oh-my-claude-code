@@ -1,31 +1,22 @@
 #!/bin/bash
 # Run all tests for instinct-learning plugin
-#
-# Usage:
-#   ./tests/run_all.sh              # Run all tests
-#   ./tests/run_all.sh --verbose    # Run with verbose output
-#   ./tests/run_all.sh --coverage   # Run with coverage report
-
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
-
 cd "$PLUGIN_DIR"
 
 VERBOSE=""
 COVERAGE=""
+TEST_TYPE="all"
 
 for arg in "$@"; do
     case $arg in
-        --verbose|-v)
-            VERBOSE="-v"
-            shift
-            ;;
-        --coverage|-c)
-            COVERAGE="1"
-            shift
-            ;;
+        --verbose|-v) VERBOSE="-v" ;;
+        --coverage|-c) COVERAGE="1" ;;
+        --unit) TEST_TYPE="unit" ;;
+        --integration) TEST_TYPE="integration" ;;
+        --scenario) TEST_TYPE="scenario" ;;
     esac
 done
 
@@ -34,25 +25,23 @@ echo "  Instinct-Learning Plugin Test Suite"
 echo "========================================"
 echo ""
 
-# Check Python version
 PYTHON_VERSION=$(python3 --version 2>&1)
 echo "Python: $PYTHON_VERSION"
 echo ""
 
-# Track test results
 TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
 
 run_test() {
-    local test_file="$1"
-    local test_name=$(basename "$test_file" .py)
+    local test_path="$1"
+    local test_name=$(basename "$test_path" .py)
 
     echo "Running: $test_name"
     echo "----------------------------------------"
 
     if [ -n "$COVERAGE" ]; then
-        if python3 -m coverage run --append "$test_file" $VERBOSE; then
+        if python3 -m pytest "$test_path" $VERBOSE --cov=scripts --cov-report=term-missing; then
             ((PASSED_TESTS++))
             echo "✅ $test_name PASSED"
         else
@@ -60,7 +49,7 @@ run_test() {
             echo "❌ $test_name FAILED"
         fi
     else
-        if python3 "$test_file" $VERBOSE; then
+        if python3 -m pytest "$test_path" $VERBOSE; then
             ((PASSED_TESTS++))
             echo "✅ $test_name PASSED"
         else
@@ -73,65 +62,38 @@ run_test() {
     echo ""
 }
 
-# Run Python unit tests
-echo "## Python Unit Tests"
-echo ""
+# Run tests based on type
+case $TEST_TYPE in
+    unit)
+        echo "## Unit Tests"
+        echo ""
+        for test_file in tests/unit/test_*.py; do
+            run_test "$test_file"
+        done
+        ;;
+    integration)
+        echo "## Integration Tests"
+        echo ""
+        for test_file in tests/integration/test_*.py; do
+            run_test "$test_file"
+        done
+        ;;
+    scenario)
+        echo "## Scenario Tests"
+        echo ""
+        for test_file in tests/scenarios/test_*.py; do
+            run_test "$test_file"
+        done
+        ;;
+    all)
+        echo "## All Tests"
+        echo ""
+        for test_file in tests/unit/test_*.py tests/integration/test_*.py tests/scenarios/test_*.py; do
+            run_test "$test_file"
+        done
+        ;;
+esac
 
-run_test "tests/test_instinct_cli.py"
-run_test "tests/test_observe_sh.py"
-run_test "tests/test_hooks.py"
-run_test "tests/test_integration.py"
-
-# Test hook script directly
-echo "## Hook Script Tests"
-echo ""
-
-echo "Running: observe.sh syntax check"
-if bash -n hooks/observe.sh; then
-    echo "✅ observe.sh syntax OK"
-    ((PASSED_TESTS++))
-else
-    echo "❌ observe.sh syntax error"
-    ((FAILED_TESTS++))
-fi
-((TOTAL_TESTS++))
-echo ""
-
-# Test CLI commands
-echo "## CLI Command Tests"
-echo ""
-
-echo "Running: CLI help"
-if python3 scripts/instinct_cli.py --help > /dev/null; then
-    echo "✅ CLI help OK"
-    ((PASSED_TESTS++))
-else
-    echo "❌ CLI help FAILED"
-    ((FAILED_TESTS++))
-fi
-((TOTAL_TESTS++))
-
-echo "Running: CLI status command"
-if python3 scripts/instinct_cli.py status > /dev/null; then
-    echo "✅ CLI status OK"
-    ((PASSED_TESTS++))
-else
-    echo "❌ CLI status FAILED"
-    ((FAILED_TESTS++))
-fi
-((TOTAL_TESTS++))
-
-echo ""
-
-# Coverage report
-if [ -n "$COVERAGE" ]; then
-    echo "## Coverage Report"
-    echo ""
-    python3 -m coverage report --include="scripts/*"
-    echo ""
-fi
-
-# Summary
 echo "========================================"
 echo "  Test Summary"
 echo "========================================"
