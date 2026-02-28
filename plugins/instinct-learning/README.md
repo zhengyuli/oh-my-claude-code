@@ -5,9 +5,8 @@ An instinct-based learning system that observes your Claude Code sessions, learn
 ## Features
 
 - **Hook-based Observation**: Captures 100% of tool use events via PreToolUse/PostToolUse hooks
-- **AI-powered Analysis**: `/instinct:analyze` dispatches observer agent (Haiku) for pattern detection
+- **AI-powered Analysis**: `/instinct:analyze` dispatches analyzer agent (Haiku) for pattern detection
 - **Confidence Scoring**: Each instinct has a confidence score (0.3-0.9) based on observation frequency
-- **Evolution**: Cluster related instincts into skills, commands, or agents
 - **Import/Export**: Share instincts with your team
 
 ## Installation
@@ -18,9 +17,8 @@ Install from the oh-my-claude-code marketplace.
 
 | Command | Description |
 |---------|-------------|
-| `/instinct:analyze` | Dispatch observer agent to analyze observations and create instincts |
+| `/instinct:analyze` | Dispatch analyzer agent to analyze observations and create instincts |
 | `/instinct:status` | Show all instincts with confidence scores |
-| `/instinct:evolve [--generate]` | Cluster instincts into skills/commands/agents |
 | `/instinct:export [options]` | Export instincts for sharing |
 | `/instinct:import <source>` | Import instincts from file or URL |
 
@@ -34,9 +32,9 @@ Install from the oh-my-claude-code marketplace.
 │   ├── personal/         # AI-learned instincts (from /instinct:analyze)
 │   └── inherited/        # Imported instincts
 └── evolved/
-    ├── agents/           # Evolved agents
-    ├── skills/           # Evolved skills
-    └── commands/         # Evolved commands
+    ├── agents/           # Evolved agents (via /instinct:evolve command)
+    ├── skills/           # Evolved skills (via /instinct:evolve command)
+    └── commands/         # Evolved commands (via /instinct:evolve command)
 ```
 
 ## Architecture
@@ -55,7 +53,7 @@ observations.jsonl
       │ /instinct:analyze (manual trigger)
       ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    Observer Agent (Haiku)                        │
+│                    Analyzer Agent (Haiku)                        │
 │  - Reads observations.jsonl                                      │
 │  - Detects patterns (corrections, workflows, preferences)        │
 │  - Creates/updates instinct files                                │
@@ -79,8 +77,8 @@ evolved/
 |-----------|------|----------------|
 | `hooks/observe.sh` | Script | Capture tool use events |
 | `hooks/hooks.json` | Config | Hook configuration |
-| `agents/observer.md` | Agent | AI-powered pattern detection |
-| `commands/analyze.md` | Command | Dispatch observer agent |
+| `agents/analyzer.md` | Agent | AI-powered pattern detection |
+| `commands/analyze.md` | Command | Dispatch analyzer agent |
 | `commands/status.md` | Command | Show instinct status |
 | `commands/evolve.md` | Command | Cluster instincts |
 | `commands/export.md` | Command | Export instincts |
@@ -153,9 +151,8 @@ Edit `~/.claude/instinct-learning/config.json` to customize:
 ## How It Works
 
 1. **Capture**: Hooks automatically capture tool use events
-2. **Analyze**: Run `/instinct:analyze` to dispatch observer agent
-3. **Learn**: Observer creates instincts with confidence scores
-4. **Evolve**: Run `/instinct:evolve` to cluster into capabilities
+2. **Analyze**: Run `/instinct:analyze` to dispatch analyzer agent
+3. **Learn**: Analyzer creates instincts with confidence scores
 
 ## Privacy
 
