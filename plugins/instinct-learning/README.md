@@ -174,3 +174,13 @@ python3 tests/test_instinct_cli.py -v
 python3 tests/test_hooks.py -v
 python3 tests/test_integration.py -v
 ```
+
+## Running Tests
+
+See [tests/README.md](tests/README.md) for detailed testing guide.
+
+Quick start:
+```bash
+./tests/run_all.sh              # All tests
+./tests/run_all.sh --coverage   # With coverage report
+```
