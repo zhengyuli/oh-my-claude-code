@@ -1,5 +1,5 @@
 ---
-name: instinct-learning:observer
+name: observer
 description: Analyzes session observations to detect patterns and create instincts
 model: haiku
 ---
