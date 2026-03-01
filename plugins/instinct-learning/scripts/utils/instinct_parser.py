@@ -1,78 +1,93 @@
 """
-YAML frontmatter parser for instinct files.
+Safe YAML frontmatter parser for instinct files.
 
-This module provides functions for parsing instinct files in YAML
-frontmatter + markdown format.
+SECURITY: Uses yaml.safe_load() to prevent code injection attacks.
 """
 
+import re
+import yaml
 from typing import List, Dict, Any
+
+# Allowed keys (prevent injection via unknown keys)
+ALLOWED_KEYS = {
+    'id', 'trigger', 'confidence', 'domain', 'source',
+    'created', 'last_observed', 'evidence_count', 'source_repo'
+}
+
+MIN_CONFIDENCE = 0.0
+MAX_CONFIDENCE = 1.0
+
+
+def validate_confidence(value: Any) -> float:
+    """Validate confidence is within valid range."""
+    try:
+        conf = float(value)
+    except (TypeError, ValueError) as e:
+        raise ValueError(f"Confidence must be a number") from e
+
+    if not (MIN_CONFIDENCE <= conf <= MAX_CONFIDENCE):
+        raise ValueError(f"Confidence must be {MIN_CONFIDENCE}-{MAX_CONFIDENCE}, got {conf}")
+    return conf
+
+
+def sanitize_string(value: str) -> str:
+    """Remove control characters that could cause issues."""
+    if not isinstance(value, str):
+        return str(value)
+    # Remove null bytes and control characters (except newline, tab)
+    return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', value)
 
 
 def parse_instinct_file(content: str) -> List[Dict[str, Any]]:
-    """Parse instinct file in YAML frontmatter + markdown format.
+    """Parse instinct file using safe YAML parsing.
 
-    The instinct file format consists of one or more instincts separated by
-    '---' delimiters. Each instinct has YAML frontmatter with metadata
-    followed by markdown content.
-
-    Format example:
-        ---
-        id: test-instinct
-        trigger: "when testing code"
-        confidence: 0.85
-        domain: testing
-        ---
-        # Test Instinct
-
-        ## Action
-        Run tests.
-
-    Args:
-        content: Raw file content as string
-
-    Returns:
-        List of instinct dictionaries with parsed frontmatter fields.
-        Only instincts with valid 'id' field are included.
-
-    Raises:
-        Does not raise. Malformed frontmatter is silently skipped.
-
-    Example:
-        >>> content = '''---\\nid: test\\ntrigger: "x"\\n---\\nContent'''
-        >>> parse_instinct_file(content)
-        [{'id': 'test', 'trigger': 'x', 'content': 'Content'}]
+    SECURITY: Uses yaml.safe_load() to prevent arbitrary code execution.
     """
     instincts = []
     current = {}
     in_frontmatter = False
     content_lines = []
+    frontmatter_lines = []
 
     for line in content.split('\n'):
         if line.strip() == '---':
-            # Toggle frontmatter state
             if in_frontmatter:
+                # End of frontmatter - parse safely
+                try:
+                    frontmatter_str = '\n'.join(frontmatter_lines)
+                    parsed = yaml.safe_load(frontmatter_str)
+
+                    if isinstance(parsed, dict):
+                        # Only keep allowed keys
+                        parsed = {k: v for k, v in parsed.items() if k in ALLOWED_KEYS}
+
+                        # Validate confidence if present
+                        if 'confidence' in parsed:
+                            parsed['confidence'] = validate_confidence(parsed['confidence'])
+
+                        # Sanitize string values
+                        for key, value in parsed.items():
+                            if isinstance(value, str):
+                                parsed[key] = sanitize_string(value)
+
+                        current.update(parsed)
+                except (yaml.YAMLError, ValueError):
+                    # Skip malformed entries
+                    pass
+
                 in_frontmatter = False
+                frontmatter_lines = []
             else:
-                in_frontmatter = True
-                # Save previous instinct if exists
+                # Start of frontmatter - save previous instinct
                 if current:
                     current['content'] = '\n'.join(content_lines).strip()
                     instincts.append(current)
                 current = {}
                 content_lines = []
+                in_frontmatter = True
         elif in_frontmatter:
-            # Parse key-value pairs from frontmatter
-            if ':' in line:
-                key, value = line.split(':', 1)
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                # Confidence must be a float
-                if key == 'confidence':
-                    current[key] = float(value)
-                else:
-                    current[key] = value
+            frontmatter_lines.append(line)
         else:
-            # Collect markdown content
             content_lines.append(line)
 
     # Don't forget the last instinct
