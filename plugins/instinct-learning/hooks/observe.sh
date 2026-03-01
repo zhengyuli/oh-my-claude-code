@@ -172,4 +172,20 @@ log "Observation written successfully"
 
 # ========== Critical Section End (trap auto-releases lock on exit) ==========
 
+# ========== Cleanup Archives (with race condition prevention) ==========
+
+# CRITICAL: Check for processing marker before cleanup
+# The analyzer agent creates .processing marker before starting analysis
+if [ -f "${OBS_DIR}/.processing" ]; then
+  log "Processing marker exists - skipping archive cleanup to prevent data loss"
+  exit 0
+fi
+
+# Remove analyzed archives (only files older than 5 minutes AND without .processing suffix)
+# Double protection: marker check + ! -name "*.processing" pattern
+find "${OBS_DIR}" -name "observations.*.jsonl" -mmin +5 ! -name "*.processing" -delete 2>/dev/null
+log "Archives cleaned up (respected processing marker)"
+
+# ========== Critical Section End ==========
+
 exit 0
