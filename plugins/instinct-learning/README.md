@@ -154,11 +154,17 @@ Edit `~/.claude/instinct-learning/config.json` to customize:
 2. **Analyze**: Run `/instinct:analyze` to dispatch analyzer agent
 3. **Learn**: Analyzer creates instincts with confidence scores
 
-## Privacy
+## Privacy & Security
 
 - Observations stay local on your machine
 - Only instincts (patterns) can be exported
 - No actual code or conversation content is shared
+- **Security:** Instinct parser uses `yaml.safe_load()` to prevent code injection
+- **Security:** Race condition protection prevents data loss during archive cleanup
+
+**Important:** If you import instincts from external sources, review the [Security Advisory](docs/SECURITY-ADVISORY-2026-03-01.md) for best practices.
+
+See [docs/SECURITY-ADVISORY-2026-03-01.md](docs/SECURITY-ADVISORY-2026-03-01.md) for details on recent security improvements.
 
 ## Testing
 
