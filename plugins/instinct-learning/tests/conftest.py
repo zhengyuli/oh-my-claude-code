@@ -5,6 +5,7 @@ import tempfile
 import shutil
 import json
 import sys
+import os
 from pathlib import Path
 from datetime import datetime
 
@@ -12,6 +13,30 @@ from datetime import datetime
 scripts_dir = Path(__file__).parent.parent / 'scripts'
 if str(scripts_dir) not in sys.path:
     sys.path.insert(0, str(scripts_dir))
+
+
+class StandaloneEnv:
+    """Helper class to provide standalone environment dict for subprocess calls."""
+
+    def __init__(self, data_dir: Path, home_dir: Path):
+        self._data_dir = data_dir
+        self._home_dir = home_dir
+        self._env = os.environ.copy()
+        self._env['HOME'] = str(home_dir)
+        self._env['INSTINCT_LEARNING_DATA_DIR'] = str(data_dir)
+        # Remove potentially conflicting vars
+        self._env.pop('PYTHONPATH', None)
+        self._env.pop('PYTHONHOME', None)
+
+    def get_env(self):
+        """Return the environment dictionary for subprocess calls."""
+        return self._env.copy()
+
+    # For backwards compatibility with tests
+    @property
+    def standalone_env(self):
+        """Return the environment dictionary for subprocess calls."""
+        return self.get_env()
 
 
 @pytest.fixture
@@ -42,11 +67,15 @@ def temp_home(monkeypatch, temp_data_dir):
     This fixture sets both HOME and INSTINCT_LEARNING_DATA_DIR
     environment variables to point to the temporary data directory,
     ensuring tests don't affect the user's actual environment.
+
+    Provides a standalone_env property for subprocess calls.
     """
     home = temp_data_dir.parent.parent
     monkeypatch.setenv('HOME', str(home))
     monkeypatch.setenv('INSTINCT_LEARNING_DATA_DIR', str(temp_data_dir))
-    return home
+
+    # Create StandaloneEnv helper for subprocess calls
+    return StandaloneEnv(temp_data_dir, home)
 
 
 @pytest.fixture

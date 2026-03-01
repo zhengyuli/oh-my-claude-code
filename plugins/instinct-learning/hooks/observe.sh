@@ -8,11 +8,21 @@
 
 set -e
 
-DATA_DIR="${HOME}/.claude/instinct-learning"
+# Support INSTINCT_LEARNING_DATA_DIR environment variable
+DATA_DIR="${INSTINCT_LEARNING_DATA_DIR:-$HOME/.claude/instinct-learning}"
 OBS_DIR="${DATA_DIR}/observations"
 OBSERVATIONS_FILE="${OBS_DIR}/observations.jsonl"
 MAX_FILE_SIZE_MB=2
 MAX_ARCHIVE_FILES=10
+
+# Debug logging (optional)
+if [ "$DEBUG_HOOKS" = "1" ]; then
+  log() {
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] HOOK: $*" >&2
+  }
+else
+  log() { true; }
+fi
 
 # Ensure directories exist
 mkdir -p "$DATA_DIR"
@@ -26,10 +36,42 @@ fi
 # Read JSON from stdin (Claude Code hook format)
 INPUT_JSON=$(cat)
 
+log "Starting hook execution"
+log "Observations file: $OBSERVATIONS_FILE"
+
 # Exit if no input
 if [ -z "$INPUT_JSON" ]; then
+  log "No input received, exiting"
   exit 0
 fi
+
+# Acquire lock using mkdir-based atomic locking (portable: macOS + Linux)
+# mkdir is atomic - only one process can succeed at creating the directory
+LOCK_DIR="${OBS_DIR}/.lockdir"
+LOCK_RETRY=0
+MAX_LOCK_RETRY=10
+LOCK_DELAY=0.01
+
+while [ $LOCK_RETRY -lt $MAX_LOCK_RETRY ]; do
+  if mkdir "$LOCK_DIR" 2>/dev/null; then
+    # Successfully acquired lock - set up cleanup on exit
+    trap 'rmdir "$LOCK_DIR" 2>/dev/null' EXIT
+    log "Lock acquired successfully"
+    break
+  fi
+  # Lock held by another process - wait and retry
+  sleep $LOCK_DELAY
+  LOCK_RETRY=$((LOCK_RETRY + 1))
+done
+
+if [ $LOCK_RETRY -eq $MAX_LOCK_RETRY ]; then
+  # Could not acquire lock within timeout - skip this observation
+  # Another process is handling observations, which is acceptable
+  log "Could not acquire lock after ${MAX_LOCK_RETRY} attempts, skipping"
+  exit 0
+fi
+
+# ========== Critical Section (protected by mkdir lock) ==========
 
 # Parse using python via stdin pipe (safe for all JSON payloads)
 PARSED=$(echo "$INPUT_JSON" | python3 -c '
@@ -80,25 +122,30 @@ if [ "$PARSED_OK" != "True" ]; then
 fi
 
 # Rotate if file too large (numbered archive system)
+# Archive naming: observations.1.jsonl, observations.2.jsonl, ..., observations.10.jsonl
+# When limit reached: delete .10, rotate .9→.10, .8→.9, ..., current→.1
 if [ -f "$OBSERVATIONS_FILE" ]; then
   file_size_mb=$(du -m "$OBSERVATIONS_FILE" 2>/dev/null | cut -f1)
   if [ "${file_size_mb:-0}" -ge "$MAX_FILE_SIZE_MB" ]; then
-    # Delete oldest archive if at limit
+    # Step 1: Remove oldest archive if at limit (prevents infinite growth)
     if [ -f "${OBS_DIR}/observations.${MAX_ARCHIVE_FILES}.jsonl" ]; then
       rm "${OBS_DIR}/observations.${MAX_ARCHIVE_FILES}.jsonl"
     fi
-    # Rotate existing archives (9->10, 8->9, ..., 1->2)
+
+    # Step 2: Rotate existing archives (highest number first)
+    # This order prevents overwriting: .9 → .10 before .8 → .9
     for i in $(seq $((MAX_ARCHIVE_FILES-1)) -1 1); do
       if [ -f "${OBS_DIR}/observations.${i}.jsonl" ]; then
         mv "${OBS_DIR}/observations.${i}.jsonl" "${OBS_DIR}/observations.$((i+1)).jsonl"
       fi
     done
-    # Rotate current to .1
+
+    # Step 3: Move current file to .1 (creates space for new observations)
     mv "$OBSERVATIONS_FILE" "${OBS_DIR}/observations.1.jsonl"
   fi
 fi
 
-# Build and write observation
+# Build and write observation (atomic append under lock protection)
 timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 export TIMESTAMP="$timestamp"
@@ -120,5 +167,9 @@ if parsed['output']:
 
 print(json.dumps(observation))
 " >> "$OBSERVATIONS_FILE"
+
+log "Observation written successfully"
+
+# ========== Critical Section End (trap auto-releases lock on exit) ==========
 
 exit 0

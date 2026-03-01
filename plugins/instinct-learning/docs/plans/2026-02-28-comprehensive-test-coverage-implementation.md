@@ -1641,7 +1641,7 @@ As of 2026-02-28, the plugin has comprehensive test coverage:
 - **Integration Tests**: ~50 tests
   - CLI command workflows
   - Hooks system integration
-  - Observer agent integration
+  - Analyzer agent integration
 
 - **Scenario Tests**: ~30 tests
   - Data integrity scenarios

@@ -23,7 +23,7 @@ def test_unicode_in_all_fields(temp_data_dir):
     # Import from scripts directory
     scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
     sys.path.insert(0, str(scripts_dir))
-    from instinct_cli import parse_instinct_file
+    from utils.instinct_parser import parse_instinct_file
 
     # Create instinct with unicode in all fields
     unicode_content = '''---
@@ -66,7 +66,7 @@ def test_special_characters_in_paths(temp_data_dir):
     # Import from scripts directory
     scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
     sys.path.insert(0, str(scripts_dir))
-    from instinct_cli import parse_instinct_file
+    from utils.instinct_parser import parse_instinct_file
 
     # Test various path formats
     special_paths = [
@@ -111,7 +111,7 @@ def test_very_long_trigger_string(temp_data_dir):
     # Import from scripts directory
     scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
     sys.path.insert(0, str(scripts_dir))
-    from instinct_cli import parse_instinct_file
+    from utils.instinct_parser import parse_instinct_file
 
     # Create a very long trigger (1000 characters)
     long_trigger = "when " + "testing " * 200 + "code"
@@ -149,7 +149,7 @@ def test_confidence_boundary_values(temp_data_dir):
     # Import from scripts directory
     scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
     sys.path.insert(0, str(scripts_dir))
-    from instinct_cli import parse_instinct_file
+    from utils.instinct_parser import parse_instinct_file
 
     # Test various confidence values
     test_cases = [

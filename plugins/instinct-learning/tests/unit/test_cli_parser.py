@@ -1,8 +1,16 @@
 # tests/unit/test_cli_parser.py
 import pytest
-from instinct_cli import parse_instinct_file, load_all_instincts
-import shutil
+import sys
+import os
 from pathlib import Path
+
+# Add scripts directory to path for imports
+scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
+sys.path.insert(0, str(scripts_dir))
+
+from utils.instinct_parser import parse_instinct_file
+from utils.file_io import load_all_instincts
+import shutil
 
 @pytest.mark.unit
 class TestParseInstinctFile:
@@ -136,11 +144,11 @@ Content here.
         (personal_dir / 'test.yaml').write_text(yaml_content)
 
         # Temporarily patch the directories
-        import instinct_cli
-        original_personal = instinct_cli.PERSONAL_DIR
-        original_inherited = instinct_cli.INHERITED_DIR
-        instinct_cli.PERSONAL_DIR = personal_dir
-        instinct_cli.INHERITED_DIR = temp_data_dir / 'instincts' / 'inherited'
+        import utils.file_io as file_io
+        original_personal = file_io.PERSONAL_DIR
+        original_inherited = file_io.INHERITED_DIR
+        file_io.PERSONAL_DIR = personal_dir
+        file_io.INHERITED_DIR = temp_data_dir / 'instincts' / 'inherited'
 
         try:
             result = load_all_instincts()
@@ -148,8 +156,8 @@ Content here.
             assert result[0]['id'] == 'yaml-instinct'
             assert result[0]['_source_type'] == 'personal'
         finally:
-            instinct_cli.PERSONAL_DIR = original_personal
-            instinct_cli.INHERITED_DIR = original_inherited
+            file_io.PERSONAL_DIR = original_personal
+            file_io.INHERITED_DIR = original_inherited
 
     def test_load_from_yml_file(self, temp_data_dir):
         """Test loading instincts from .yml file."""
@@ -163,19 +171,19 @@ Content.
         personal_dir = temp_data_dir / 'instincts' / 'personal'
         (personal_dir / 'test.yml').write_text(yml_content)
 
-        import instinct_cli
-        original_personal = instinct_cli.PERSONAL_DIR
-        original_inherited = instinct_cli.INHERITED_DIR
-        instinct_cli.PERSONAL_DIR = personal_dir
-        instinct_cli.INHERITED_DIR = temp_data_dir / 'instincts' / 'inherited'
+        import utils.file_io as file_io
+        original_personal = file_io.PERSONAL_DIR
+        original_inherited = file_io.INHERITED_DIR
+        file_io.PERSONAL_DIR = personal_dir
+        file_io.INHERITED_DIR = temp_data_dir / 'instincts' / 'inherited'
 
         try:
             result = load_all_instincts()
             assert len(result) == 1
             assert result[0]['id'] == 'yml-instinct'
         finally:
-            instinct_cli.PERSONAL_DIR = original_personal
-            instinct_cli.INHERITED_DIR = original_inherited
+            file_io.PERSONAL_DIR = original_personal
+            file_io.INHERITED_DIR = original_inherited
 
     def test_load_from_md_file(self, temp_data_dir):
         """Test loading instincts from .md file."""
@@ -189,19 +197,19 @@ Content.
         personal_dir = temp_data_dir / 'instincts' / 'personal'
         (personal_dir / 'test.md').write_text(md_content)
 
-        import instinct_cli
-        original_personal = instinct_cli.PERSONAL_DIR
-        original_inherited = instinct_cli.INHERITED_DIR
-        instinct_cli.PERSONAL_DIR = personal_dir
-        instinct_cli.INHERITED_DIR = temp_data_dir / 'instincts' / 'inherited'
+        import utils.file_io as file_io
+        original_personal = file_io.PERSONAL_DIR
+        original_inherited = file_io.INHERITED_DIR
+        file_io.PERSONAL_DIR = personal_dir
+        file_io.INHERITED_DIR = temp_data_dir / 'instincts' / 'inherited'
 
         try:
             result = load_all_instincts()
             assert len(result) == 1
             assert result[0]['id'] == 'md-instinct'
         finally:
-            instinct_cli.PERSONAL_DIR = original_personal
-            instinct_cli.INHERITED_DIR = original_inherited
+            file_io.PERSONAL_DIR = original_personal
+            file_io.INHERITED_DIR = original_inherited
 
     def test_load_from_multiple_directories(self, temp_data_dir):
         """Test loading from both personal and inherited directories."""
@@ -224,11 +232,11 @@ Inherited content.
         (personal_dir / 'personal.yaml').write_text(personal_content)
         (inherited_dir / 'inherited.yaml').write_text(inherited_content)
 
-        import instinct_cli
-        original_personal = instinct_cli.PERSONAL_DIR
-        original_inherited = instinct_cli.INHERITED_DIR
-        instinct_cli.PERSONAL_DIR = personal_dir
-        instinct_cli.INHERITED_DIR = inherited_dir
+        import utils.file_io as file_io
+        original_personal = file_io.PERSONAL_DIR
+        original_inherited = file_io.INHERITED_DIR
+        file_io.PERSONAL_DIR = personal_dir
+        file_io.INHERITED_DIR = inherited_dir
 
         try:
             result = load_all_instincts()
@@ -244,26 +252,26 @@ Inherited content.
             assert personal['_source_type'] == 'personal'
             assert inherited['_source_type'] == 'inherited'
         finally:
-            instinct_cli.PERSONAL_DIR = original_personal
-            instinct_cli.INHERITED_DIR = original_inherited
+            file_io.PERSONAL_DIR = original_personal
+            file_io.INHERITED_DIR = original_inherited
 
     def test_load_empty_directories(self, temp_data_dir):
         """Test loading from empty directories."""
         personal_dir = temp_data_dir / 'instincts' / 'personal'
         inherited_dir = temp_data_dir / 'instincts' / 'inherited'
 
-        import instinct_cli
-        original_personal = instinct_cli.PERSONAL_DIR
-        original_inherited = instinct_cli.INHERITED_DIR
-        instinct_cli.PERSONAL_DIR = personal_dir
-        instinct_cli.INHERITED_DIR = inherited_dir
+        import utils.file_io as file_io
+        original_personal = file_io.PERSONAL_DIR
+        original_inherited = file_io.INHERITED_DIR
+        file_io.PERSONAL_DIR = personal_dir
+        file_io.INHERITED_DIR = inherited_dir
 
         try:
             result = load_all_instincts()
             assert len(result) == 0
         finally:
-            instinct_cli.PERSONAL_DIR = original_personal
-            instinct_cli.INHERITED_DIR = original_inherited
+            file_io.PERSONAL_DIR = original_personal
+            file_io.INHERITED_DIR = original_inherited
 
     def test_load_handles_invalid_files(self, temp_data_dir):
         """Test that invalid files don't crash the loader."""
@@ -279,11 +287,11 @@ Content.
 '''
         (personal_dir / 'valid.yaml').write_text(valid_content)
 
-        import instinct_cli
-        original_personal = instinct_cli.PERSONAL_DIR
-        original_inherited = instinct_cli.INHERITED_DIR
-        instinct_cli.PERSONAL_DIR = personal_dir
-        instinct_cli.INHERITED_DIR = temp_data_dir / 'instincts' / 'inherited'
+        import utils.file_io as file_io
+        original_personal = file_io.PERSONAL_DIR
+        original_inherited = file_io.INHERITED_DIR
+        file_io.PERSONAL_DIR = personal_dir
+        file_io.INHERITED_DIR = temp_data_dir / 'instincts' / 'inherited'
 
         try:
             # Should not crash, should load only valid file
@@ -291,5 +299,5 @@ Content.
             assert len(result) == 1
             assert result[0]['id'] == 'valid-instinct'
         finally:
-            instinct_cli.PERSONAL_DIR = original_personal
-            instinct_cli.INHERITED_DIR = original_inherited
+            file_io.PERSONAL_DIR = original_personal
+            file_io.INHERITED_DIR = original_inherited

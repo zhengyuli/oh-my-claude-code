@@ -29,7 +29,7 @@ tests/
 ├── integration/             # 集成测试（新建）
 │   ├── test_cli_integration.py      # CLI 命令集成
 │   ├── test_hooks_integration.py    # Hooks 系统集成
-│   └── test_observer_integration.py # Observer 集成
+│   └── test_analyzer_integration.py # Analyzer 集成
 └── scenarios/               # 场景测试（新建）
     ├── test_data_integrity.py       # 数据完整性
     ├── test_performance.py          # 性能测试
@@ -207,15 +207,15 @@ def large_dataset():
 - `test_hook_execution_time_under_limit` - 执行时间限制
 - `test_all_observed_tools_captured` - 所有工具被捕获
 
-### `test_observer_integration.py` - Observer Integration
+### `test_analyzer_integration.py` - Analyzer Integration
 
-- `test_observer_reads_archived_files_only` - 仅读取归档
-- `test_observer_detects_repeated_patterns` - 检测重复模式
-- `test_observer_creates_instinct_files` - 创建本能文件
-- `test_observer_updates_existing_instincts` - 更新已存在本能
-- `test_observer_enforces_max_limit` - 强制最大限制
-- `test_observer_cleanup_archives` - 清理归档
-- `test_observer_with_insufficient_data` - 数据不足处理
+- `test_analyzer_reads_archived_files_only` - 仅读取归档
+- `test_analyzer_detects_repeated_patterns` - 检测重复模式
+- `test_analyzer_creates_instinct_files` - 创建本能文件
+- `test_analyzer_updates_existing_instincts` - 更新已存在本能
+- `test_analyzer_enforces_max_limit` - 强制最大限制
+- `test_analyzer_cleanup_archives` - 清理归档
+- `test_analyzer_with_insufficient_data` - 数据不足处理
 
 ## Scenario Tests (~30 test cases)
 

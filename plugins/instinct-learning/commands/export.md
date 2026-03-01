@@ -29,24 +29,97 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py export --domain testing --
 
 ## Output Format
 
+The exported file contains:
+
+1. **Header metadata** (3 lines with export date and count)
+2. **One or more instinct blocks**, each with:
+   - YAML frontmatter (metadata wrapped in `---`)
+   - Markdown content (title, action, evidence)
+
+### File Structure
+
+```
+# Instincts export          # ← Header (3 lines)
+# Date: <timestamp>
+# Total: <count>
+
+                           # ← Blank line
+---                        # ← Start of instinct #1
+id: <instinct-id>
+trigger: "when <condition>"
+confidence: 0.X
+domain: <category>
+source: session-observation
+---                        # ← End of frontmatter
+
+                           # ← Blank line
+# <Instinct Title>         # ← Markdown content starts
+
+## Action
+<What to do when trigger fires>
+
+## Evidence
+- <Observation 1>
+- <Observation 2>
+
+                           # ← Blank line
+---                        # ← Start of instinct #2 (if more exist)
+...
+```
+
+### Example Output
+
 ```markdown
 # Instincts export
-# Date: 2026-02-28T10:30:00Z
-# Total: 5
+# Date: 2026-03-01T13:25:13.828119
+# Total: 23
 
 ---
-id: test-first-approach
-trigger: "when implementing new features"
-confidence: 0.9
-domain: testing
+id: bash-command-clustering
+trigger: "when executing multiple related commands"
+confidence: 0.85
+domain: workflow
 source: session-observation
 ---
 
-# Test First Approach
+# Bash Command Clustering
 
 ## Action
-Always write tests before implementation.
+When executing multiple related commands, cluster them together in rapid succession.
+
+## Evidence
+- Bash-to-Bash sequence observed 36 times across all sessions
+- Average gap between related Bash commands: 12-19 seconds
 ```
+
+**Note**: Each instinct is separated by a blank line. The `source_repo` field is omitted when empty.
+
+## Pre-flight Checks
+
+Before running export, verify:
+
+```bash
+# 1. Check instincts exist
+INSTINCTS_DIR="${INSTINCT_LEARNING_DATA_DIR:-$HOME/.claude/instinct-learning}/instincts"
+if [ ! -d "$INSTINCTS_DIR" ]; then
+  echo "❌ Instincts directory not found"
+  exit 1
+fi
+
+# 2. Count instincts
+INSTINCT_COUNT=$(find "$INSTINCTS_DIR"/personal -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+if [ "$INSTINCT_COUNT" -eq 0 ]; then
+  echo "❌ No instincts found to export"
+  echo "   Run /instinct:analyze to create instincts."
+  exit 1
+fi
+
+echo "✅ Ready to export $INSTINCT_COUNT instincts"
+```
+
+**Error Messages**:
+- ❌ Directory not found
+- ❌ No instincts to export
 
 ## Implementation
 
@@ -62,3 +135,10 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py export [options]
 
 - `/instinct:import` - Import instincts
 - `/instinct:status` - View all instincts
+
+## Help
+
+For more information on available options:
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py export --help
+```

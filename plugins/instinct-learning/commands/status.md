@@ -56,5 +56,12 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py status
 
 ## Related Commands
 
-- `/instinct:analyze` - Trigger pattern analysis (uses observer agent)
+- `/instinct:analyze` - Trigger pattern analysis (uses analyzer agent)
 - `/instinct:export` - Export instincts for sharing
+
+## Help
+
+For more information on available options:
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py status --help
+```

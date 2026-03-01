@@ -64,7 +64,7 @@ def test_empty_input_handled(temp_data_dir):
     import sys
     scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
     sys.path.insert(0, str(scripts_dir))
-    from instinct_cli import parse_instinct_file
+    from utils.instinct_parser import parse_instinct_file
 
     # Test with empty content
     result = parse_instinct_file('')

@@ -1,6 +1,13 @@
 # tests/unit/test_cli_import.py
 import pytest
-from instinct_cli import parse_instinct_file
+import sys
+from pathlib import Path
+
+# Add scripts directory to path for imports
+scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
+sys.path.insert(0, str(scripts_dir))
+
+from utils.instinct_parser import parse_instinct_file
 
 @pytest.mark.unit
 class TestImportParsing:

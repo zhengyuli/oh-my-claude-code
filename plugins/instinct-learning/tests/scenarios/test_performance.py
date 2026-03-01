@@ -120,8 +120,8 @@ def test_thousands_of_instincts_loading(temp_data_dir):
     import sys
     scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
     sys.path.insert(0, str(scripts_dir))
-    from instinct_cli import load_all_instincts
-    import instinct_cli
+    from utils.file_io import load_all_instincts
+    import utils.file_io as file_io
 
     instincts_dir = temp_data_dir / 'instincts' / 'personal'
     inherited_dir = temp_data_dir / 'instincts' / 'inherited'
@@ -152,19 +152,19 @@ Perform test action {i}.
 
     creation_time = time.time() - start_time
 
-    # Patch the directories in instinct_cli module
-    original_personal = instinct_cli.PERSONAL_DIR
-    original_inherited = instinct_cli.INHERITED_DIR
-    instinct_cli.PERSONAL_DIR = instincts_dir
-    instinct_cli.INHERITED_DIR = inherited_dir
+    # Patch the directories in file_io module
+    original_personal = file_io.PERSONAL_DIR
+    original_inherited = file_io.INHERITED_DIR
+    file_io.PERSONAL_DIR = instincts_dir
+    file_io.INHERITED_DIR = inherited_dir
 
     load_start = time.time()
     instincts = load_all_instincts()
     load_time = time.time() - load_start
 
     # Restore original directories
-    instinct_cli.PERSONAL_DIR = original_personal
-    instinct_cli.INHERITED_DIR = original_inherited
+    file_io.PERSONAL_DIR = original_personal
+    file_io.INHERITED_DIR = original_inherited
 
     # Verify results
     assert len(instincts) == 100

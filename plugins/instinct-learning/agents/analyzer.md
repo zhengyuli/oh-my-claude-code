@@ -1,19 +1,29 @@
 ---
-name: observer
+name: analyzer
 description: Analyzes session observations to detect patterns and create instincts
-model: haiku
+model: haiku  # Cost-efficient: pattern detection is straightforward, high frequency operation
 tools: Read, Bash, Write
+keywords: ["pattern-detection", "instinct-creation", "observation-analysis", "learning"]
 ---
 
-# Observer Agent
+# Analyzer Agent
 
 You analyze tool usage observations and create instinct files.
 
 ## Task
 
-Read observations from archived files in `~/.claude/instinct-learning/observations/`, detect patterns, and create/update instinct files in `~/.claude/instinct-learning/instincts/personal/`.
+Read observations from archived files in the observations directory, detect patterns, and create/update instinct files in the personal instincts directory.
 
 ## Process
+
+### 0. Set Data Directory
+
+```bash
+# Support INSTINCT_LEARNING_DATA_DIR environment variable
+DATA_DIR="${INSTINCT_LEARNING_DATA_DIR:-$HOME/.claude/instinct-learning}"
+OBS_DIR="${DATA_DIR}/observations"
+PERSONAL_DIR="${DATA_DIR}/instincts/personal"
+```
 
 ### 1. Load Archived Observations
 
@@ -21,13 +31,13 @@ Check and read **archived observation files only** (not the active file being wr
 
 ```bash
 # List available archives
-ls -la ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null
+ls -la "${OBS_DIR}/observations.*.jsonl" 2>/dev/null
 
 # Count observations in archives
-wc -l ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null
+wc -l "${OBS_DIR}/observations.*.jsonl" 2>/dev/null
 
 # Read all archived observations
-cat ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null
+cat "${OBS_DIR}/observations.*.jsonl" 2>/dev/null
 ```
 
 **IMPORTANT**: Do NOT read `observations.jsonl` (the active file). Only process archived files (`observations.1.jsonl`, `observations.2.jsonl`, etc.) to ensure complete observation records.
@@ -40,7 +50,7 @@ cat ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null
 
 ### 2. Detect Patterns
 
-Look for these patterns (require 3+ observations):
+Look for these patterns (require 3+ observations for statistical significance):
 
 | Pattern | Indicators | Instinct Template |
 |---------|------------|-------------------|
@@ -69,7 +79,7 @@ Look for these patterns (require 3+ observations):
 
 ### 4. Create Instinct Files
 
-Write files to `~/.claude/instinct-learning/instincts/personal/<id>.md`:
+Write files to `${PERSONAL_DIR}/<id>.md`:
 
 ```markdown
 ---
@@ -93,7 +103,7 @@ evidence_count: <number>
 - Pattern: <description>
 ```
 
-**Domains**: `code-style`, `testing`, `git`, `debugging`, `workflow`, `architecture`
+**Domains**: `code-style`, `testing`, `git`, `debugging`, `workflow`, `architecture`, `documentation`
 
 **Updating existing instincts**: When a pattern matches an existing instinct:
 1. Increase confidence: `min(0.9, current + 0.05)`
@@ -135,7 +145,7 @@ Always use Grep to find the exact location before using Edit.
 
 - **File not found**: Report "No observations file found" and exit
 - **Empty file**: Report "No observations to analyze" and exit
-- **Less than 10 observations**: Warn but proceed with analysis
+- **Less than 10 observations**: Warn "Limited patterns - recommend 10+ observations for meaningful analysis"
 
 ## Output Summary
 
@@ -166,13 +176,15 @@ After successful analysis, remove the analyzed archive files:
 
 ```bash
 # Count observations analyzed
-total_obs=$(cat ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null | wc -l)
+total_obs=$(cat "${OBS_DIR}/observations.*.jsonl" 2>/dev/null | wc -l)
 echo "Analyzed $total_obs observations from archives"
 
-# Remove analyzed archives
-rm ~/.claude/instinct-learning/observations/observations.*.jsonl 2>/dev/null
+# Remove analyzed archives (only files older than 5 minutes to avoid race conditions)
+find "${OBS_DIR}" -name "observations.*.jsonl" -mmin +5 -delete 2>/dev/null
 echo "Archives cleaned up"
 ```
+
+**IMPORTANT**: Using `-mmin +5` ensures we only delete files older than 5 minutes, preventing deletion of files still being actively written by hooks.
 
 This ensures we don't re-analyze the same observations in future runs.
 
@@ -182,19 +194,18 @@ After creating/updating instincts, check if count exceeds limit and prune if nee
 
 ```bash
 # Count current instincts
-PERSONAL_DIR=~/.claude/instinct-learning/instincts/personal
-INSTINCT_COUNT=$(find "$PERSONAL_DIR" \( -name "*.md" -o -name "*.yaml" -o -name "*.yml" \) 2>/dev/null | wc -l | tr -d ' ')
+INSTINCT_COUNT=$(find "$PERSONAL_DIR" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
 
 echo "Current instincts: $INSTINCT_COUNT"
 
 # If over limit (100), run prune
 if [ "$INSTINCT_COUNT" -gt 100 ]; then
   echo "Exceeds limit (100), pruning low-confidence instincts..."
-  python3 ~/.claude/plugins/instinct-learning/scripts/instinct_cli.py prune --max-instincts 100
+  python3 "${CLAUDE_PLUGIN_ROOT}/scripts/instinct_cli.py" prune --max-instincts 100
 fi
 ```
 
 **Pruning behavior:**
 - Uses effective confidence (with time-based decay) for ranking
-- Archives (not deletes) lowest-confidence instincts to `~/.claude/instinct-learning/instincts/archived/`
+- Archives (not deletes) lowest-confidence instincts to `${DATA_DIR}/instincts/archived/`
 - Preserves the 100 highest-confidence instincts

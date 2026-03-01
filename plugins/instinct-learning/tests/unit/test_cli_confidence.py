@@ -1,7 +1,14 @@
 # tests/unit/test_cli_confidence.py
 import pytest
 from datetime import datetime, timedelta
-from instinct_cli import calculate_effective_confidence
+import sys
+from pathlib import Path
+
+# Add scripts directory to path for imports
+scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
+sys.path.insert(0, str(scripts_dir))
+
+from utils.confidence import calculate_effective_confidence
 
 @pytest.mark.unit
 class TestCalculateEffectiveConfidence:

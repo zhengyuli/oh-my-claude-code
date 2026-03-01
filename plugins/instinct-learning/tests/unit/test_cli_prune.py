@@ -7,7 +7,14 @@ is in integration tests (test_cli_prune_integration.sh). These tests verify the
 core sorting and filtering logic patterns used by the prune command.
 """
 import pytest
-from instinct_cli import calculate_effective_confidence
+import sys
+from pathlib import Path
+
+# Add scripts directory to path for imports
+scripts_dir = Path(__file__).parent.parent.parent / 'scripts'
+sys.path.insert(0, str(scripts_dir))
+
+from utils.confidence import calculate_effective_confidence
 
 @pytest.mark.unit
 class TestPruneLogic:

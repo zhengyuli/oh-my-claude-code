@@ -7,6 +7,44 @@
     "email": "zhengyu.li@users.noreply.github.com"
   },
   "repository": "https://github.com/zhengyuli/oh-my-claude-code",
+  "homepage": "https://github.com/zhengyuli/oh-my-claude-code/tree/main/plugins/instinct-learning",
   "license": "MIT",
-    "keywords": ["instinct", "learning", "patterns", "observation", "evolution", "productivity", "hooks", "agents"]
+  "strict": false,
+  "agents": [
+    {
+      "name": "analyzer",
+      "file": "agents/analyzer.md"
+    },
+    {
+      "name": "evolver",
+      "file": "agents/evolver.md"
+    }
+  ],
+  "commands": [
+    {
+      "name": "instinct:analyze",
+      "file": "commands/analyze.md"
+    },
+    {
+      "name": "instinct:status",
+      "file": "commands/status.md"
+    },
+    {
+      "name": "instinct:evolve",
+      "file": "commands/evolve.md"
+    },
+    {
+      "name": "instinct:export",
+      "file": "commands/export.md"
+    },
+    {
+      "name": "instinct:import",
+      "file": "commands/import.md"
+    }
+  ],
+  "skills": [],
+  "keywords": ["instinct", "learning", "patterns", "observation", "evolution", "productivity", "hooks", "agents"],
+  "_comment": {
+    "skills": "Skills array is empty because skills are dynamically generated via /instinct:evolve command and stored in evolved/skills/ directory"
+  }
 }
