@@ -25,22 +25,19 @@ OBS_DIR="${DATA_DIR}/observations"
 PERSONAL_DIR="${DATA_DIR}/instincts/personal"
 ```
 
-### 1. Load Archived Observations
+### 1. Get Archive List
 
-Check and read **archived observation files only** (not the active file being written to):
+Identify all archived observation files to process:
 
 ```bash
-# List available archives
-ls -la "${OBS_DIR}/observations.*.jsonl" 2>/dev/null
-
-# Count observations in archives
-wc -l "${OBS_DIR}/observations.*.jsonl" 2>/dev/null
-
-# Read all archived observations
-cat "${OBS_DIR}/observations.*.jsonl" 2>/dev/null
+# List archives sorted by timestamp (oldest first)
+archives=$(ls -1t "${OBS_DIR}/observations-"*.jsonl 2>/dev/null | tac)
 ```
 
-**IMPORTANT**: Do NOT read `observations.jsonl` (the active file). Only process archived files (`observations.1.jsonl`, `observations.2.jsonl`, etc.) to ensure complete observation records.
+**IMPORTANT**:
+- Process in chronological order (oldest first)
+- Only process archived files, not the active `observations.jsonl`
+- Each archive is processed completely before moving to the next
 
 **Observation format**:
 ```json
@@ -154,11 +151,17 @@ Report results:
 ```
 ## Analysis Complete
 
-**Observations analyzed**: <count>
+**Archives processed**: <count>
+**Total observations analyzed**: <count>
 **Patterns detected**: <count>
 **Instincts created**: <count>
 **Instincts updated**: <count>
 **Instincts pruned**: <count> (if any)
+
+### Archives Processed (chronological order)
+- observations-2026-03-03T10:15:00Z.jsonl (150 observations)
+- observations-2026-03-03T11:30:00Z.jsonl (200 observations)
+- observations-2026-03-03T13:45:00Z.jsonl (180 observations)
 
 ### Created Instincts
 - <id> (confidence: <score>) - <trigger>
@@ -170,23 +173,192 @@ Report results:
 - <id> (effective confidence: <score>) - archived
 ```
 
-### 5. Cleanup Archives
+### 5. Process Each Archive
 
-After successful analysis, remove the analyzed archive files:
+This section brings together concepts from Sections 2-4:
+- **Section 2** defines the pattern types to detect
+- **Section 3** provides confidence calculation
+- **Section 4** specifies the output format
 
+You will now apply these concepts to each archive file sequentially.
+
+For each archive file, in chronological order, perform the following:
+
+#### 5.1 Load Observations
+
+Read the entire archive file to understand the context:
 ```bash
-# Count observations analyzed
-total_obs=$(cat "${OBS_DIR}/observations.*.jsonl" 2>/dev/null | wc -l)
-echo "Analyzed $total_obs observations from archives"
-
-# Remove analyzed archives (only files older than 5 minutes to avoid race conditions)
-find "${OBS_DIR}" -name "observations.*.jsonl" -mmin +5 -delete 2>/dev/null
-echo "Archives cleaned up"
+cat "$archive"
 ```
 
-**IMPORTANT**: Using `-mmin +5` ensures we only delete files older than 5 minutes, preventing deletion of files still being actively written by hooks.
+Understand:
+- What sessions are included?
+- What tools were used?
+- What is the time range?
+- Are there any obvious patterns?
 
-This ensures we don't re-analyze the same observations in future runs.
+#### 5.2 Detect Patterns Semantically
+
+Apply your understanding to detect the following patterns:
+
+**Pattern Type 1: User Corrections**
+
+Look for signs that the user changed their approach:
+- Same task attempted multiple times
+- Keywords: "no", "not", "instead", "actually", "wait"
+- Tool changes: trying different tools for the same goal
+
+**Example**:
+```
+Observation 1: User runs `Edit` to change function signature
+Observation 2: User runs `Edit` again with different signature
+Observation 3: User runs `Bash` to test the change
+→ Pattern: User iterates on function signatures
+→ Instinct: "When changing function signatures, test incrementally"
+```
+
+**Pattern Type 2: Error Resolutions**
+
+Look for error → fix sequences:
+- Tool failures or error messages
+- Followed by corrective actions
+- Repeated error → fix patterns
+
+**Example**:
+```
+Observation 1: Edit fails with "file not found"
+Observation 2: Read checks file path
+Observation 3: Edit retries with correct path
+→ Pattern: User verifies file paths before editing
+→ Instinct: "When editing files, verify paths exist first"
+```
+
+**Pattern Type 3: Repeated Workflows**
+
+Look for consistent tool sequences:
+- Same tools used in the same order
+- Across multiple sessions
+- For similar purposes
+
+**Example**:
+```
+Session A: Grep → Read → Edit → Bash
+Session B: Grep → Read → Edit → Bash
+Session C: Grep → Read → Edit → Bash
+→ Pattern: Code investigation workflow
+→ Instinct: "When investigating code, follow: Grep → Read → Edit → Test"
+```
+
+**Pattern Type 4: Tool Preferences**
+
+Look for consistent tool choices:
+- Similar tasks always use the same tool
+- High frequency of specific tool usage
+- Contextual preferences
+
+**Example**:
+```
+All file searches use `Grep`, never `find`
+→ Pattern: Preference for Grep over find
+→ Instinct: "When searching code, prefer Grep"
+```
+
+**Pattern Type 5: File Patterns**
+
+Look for related file relationships:
+- Files edited in sequence
+- Test files modified with source files
+- Config files changed with implementation
+
+**Example**:
+```
+Edit: src/components/Button.tsx
+Edit: src/components/Button.test.tsx
+→ Pattern: Test files updated with source
+→ Instinct: "When modifying components, also update tests"
+```
+
+**Detection Threshold**:
+- Minimum 3 observations for statistical significance
+- Higher confidence with more observations (see Section 3)
+- Consider context and semantic similarity, not just exact matches
+
+#### 5.3 Create or Update Instincts
+
+For each detected pattern:
+
+1. **Generate a unique ID**: Use kebab-case based on the pattern
+2. **Check for existing instincts**: Read `${PERSONAL_DIR}/*.md` files
+3. **Compare semantically**: Does an existing instinct describe the same pattern?
+4. **Create or Update**:
+   - **New**: Create instinct file with format from Section 4
+   - **Update**: Increase confidence, update last_observed, increment evidence_count
+
+**Confidence Calculation** (from Section 3):
+- 1-2 observations: 0.3 (Tentative)
+- 3-5 observations: 0.5 (Moderate)
+- 6-10 observations: 0.7 (Strong)
+- 11+ observations: 0.85 (Very Strong)
+
+**Example Creation**:
+```markdown
+---
+id: verify-paths-before-edit
+trigger: "when editing files after file not found errors"
+confidence: 0.7
+domain: debugging
+source: session-observation
+created: 2026-03-03T14:00:00Z
+last_observed: 2026-03-03T15:30:00Z
+evidence_count: 5
+---
+
+# Verify File Paths Before Editing
+
+## Action
+After encountering "file not found" errors, always verify the file path using `Read` or `Grep` before attempting to `Edit`.
+
+## Evidence
+- Observed in 3 different sessions
+- Pattern: Edit fails → Read/Grep to find correct path → Edit succeeds
+- Archive: observations-2026-03-03T14:30:00Z.jsonl
+```
+
+**Updating Existing Instincts**:
+- Increase confidence: `min(0.9, current + 0.05)`
+- Update `last_observed` to current timestamp
+- Increment `evidence_count`
+
+#### 5.4 Delete Archive
+
+After successfully creating/updating instincts for an archive:
+
+```bash
+rm "$archive"
+echo "✓ Processed and deleted: $(basename "$archive")"
+```
+
+**Verification**:
+- All patterns detected?
+- All instincts created/updated?
+- Archive file deleted?
+- Ready for next archive?
+
+---
+
+**Processing Flow Summary**:
+
+For each archive (oldest → newest):
+1. **Read** and understand observations
+2. **Detect** patterns semantically (5 types)
+3. **Create/Update** instincts (Section 4 format)
+4. **Delete** archive
+5. **Continue** to next archive
+
+**After all archives**:
+- Report total patterns detected
+- Report total instincts created/updated
+- Provide summary of analysis
 
 ### 6. Enforce Max Instincts
 
