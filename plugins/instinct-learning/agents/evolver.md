@@ -1,7 +1,7 @@
 ---
 name: evolver
 description: Clusters instincts into commands, skills, or agents
-model: sonnet  # Clustering requires semantic understanding and multi-step reasoning
+model: opus  # Clustering requires semantic understanding and multi-step reasoning
 tools: Read, Bash, Write
 keywords: ["clustering", "evolution", "skills", "agents", "commands"]
 ---

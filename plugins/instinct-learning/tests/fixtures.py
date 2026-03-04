@@ -129,8 +129,7 @@ SAMPLE_POST_TOOL_USE_INPUT = {
 SAMPLE_CONFIG = {
     "observation": {
         "enabled": True,
-        "max_file_size_mb": 10,
-        "archive_after_days": 7,
+        "max_file_size_mb": 1,
         "capture_tools": ["Edit", "Write", "Bash", "Read", "Grep", "Glob"],
         "ignore_tools": ["TodoWrite", "TaskCreate", "TaskUpdate"]
     },

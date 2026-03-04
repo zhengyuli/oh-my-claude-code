@@ -50,13 +50,18 @@ Session Activity
       ▼
 observations.jsonl
       │
+      │ File size ≥ 1MB
+      ▼
+observations-2026-03-03T13:45:00Z.jsonl  (timestamped archive)
+      │
       │ /instinct:analyze (manual trigger)
       ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Analyzer Agent (Haiku)                        │
-│  - Reads observations.jsonl                                      │
+│  - Reads archives chronologically (oldest first)                 │
 │  - Detects patterns (corrections, workflows, preferences)        │
 │  - Creates/updates instinct files                                │
+│  - Deletes archives after processing                             │
 └─────────────────────────────────────────────────────────────────┘
       │
       │ Creates

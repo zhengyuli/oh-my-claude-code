@@ -1,38 +1,4 @@
-"""
-Import command handler.
-
-This module handles importing instincts from external sources (files or URLs)
-into the instinct-learning system. It provides duplicate detection,
-confidence-based filtering, and user confirmation workflows.
-
-Features:
-- Import from local files or remote URLs
-- Duplicate detection and handling (update if higher confidence, skip otherwise)
-- Confidence-based filtering
-- Dry-run mode for preview
-- User confirmation prompts (can be bypassed with --force)
-- One file per instinct (uses instinct ID as filename)
-
-Import Workflow:
-1. Fetch content from source (file or URL)
-2. Parse YAML frontmatter instincts
-3. Categorize into: new, updates, duplicates
-4. Apply confidence filtering
-5. Show preview and get confirmation
-6. Write each instinct to a separate file in inherited directory
-
-Output Format:
-    Imported instincts are saved to INHERITED_DIR with:
-    - One file per instinct (named {id}.md)
-    - Source attribution (imported_from field)
-    - Import date in file header
-    - YAML frontmatter with all metadata
-    - Original markdown content
-
-Example:
-    $ python3 instinct_cli.py import instincts.md --dry-run
-    $ python3 instinct_cli.py import https://example.com/instincts.md --force
-"""
+"""Import command handler - imports instincts from files/URLs with duplicate detection."""
 
 import sys
 import urllib.request
@@ -46,34 +12,11 @@ from utils.file_io import load_all_instincts, INHERITED_DIR
 from utils.instinct_parser import parse_instinct_file
 
 
-def _fetch_content_from_url(source: str) -> str:
-    """Fetch content from URL.
-
-    Args:
-        source: URL to fetch from
-
-    Returns:
-        Content as string
-
-    Raises:
-        urllib.error.URLError: If URL fetch fails
-    """
-    with urllib.request.urlopen(source) as response:
-        return response.read().decode('utf-8')
-
-
-def _fetch_content_from_file(source: str) -> str:
-    """Fetch content from file path.
-
-    Args:
-        source: File path
-
-    Returns:
-        Content as string
-
-    Raises:
-        FileNotFoundError: If file doesn't exist
-    """
+def _fetch_content(source: str) -> str:
+    """Fetch content from URL or file."""
+    if source.startswith(('http://', 'https://')):
+        with urllib.request.urlopen(source) as response:
+            return response.read().decode('utf-8')
     path = Path(source).expanduser()
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
@@ -84,99 +27,52 @@ def _categorize_instincts(
     new_instincts: List[Dict[str, Any]],
     existing_instincts: List[Dict[str, Any]]
 ) -> Tuple[List[Dict], List[Dict], List[Dict]]:
-    """Categorize instincts into to_add, to_update, and duplicates.
-
-    Args:
-        new_instincts: List of new instincts to import
-        existing_instincts: List of existing instincts
-
-    Returns:
-        Tuple of (to_add, to_update, duplicates) lists
-    """
-    existing_ids = {i.get('id') for i in existing_instincts}
+    """Categorize instincts into to_add, to_update, and duplicates."""
     existing_by_id = {i.get('id'): i for i in existing_instincts if i.get('id')}
-
-    to_add = []
-    duplicates = []
-    to_update = []
+    to_add, to_update, duplicates = [], [], []
 
     for inst in new_instincts:
         inst_id = inst.get('id')
-        if inst_id in existing_ids:
-            existing_inst = existing_by_id.get(inst_id)
-            if existing_inst:
-                if inst.get('confidence', 0) > existing_inst.get('confidence', 0):
-                    to_update.append(inst)
-                else:
-                    duplicates.append(inst)
+        if inst_id in existing_by_id:
+            existing = existing_by_id[inst_id]
+            if inst.get('confidence', 0) > existing.get('confidence', 0):
+                to_update.append(inst)
+            else:
+                duplicates.append(inst)
         else:
             to_add.append(inst)
 
     return to_add, to_update, duplicates
 
 
-def _filter_by_confidence(
-    instincts: List[Dict],
-    min_confidence: float
-) -> List[Dict]:
-    """Filter instincts by minimum confidence.
-
-    Args:
-        instincts: List of instincts
-        min_confidence: Minimum confidence threshold
-
-    Returns:
-        Filtered list of instincts
-    """
-    return [i for i in instincts if i.get('confidence', 0.5) >= min_confidence]
+def _filter_by_confidence(instincts: List[Dict], min_conf: float) -> List[Dict]:
+    """Filter instincts by minimum confidence."""
+    return [i for i in instincts if i.get('confidence', 0.5) >= min_conf]
 
 
-def _print_import_summary(
-    to_add: List[Dict],
-    to_update: List[Dict],
-    duplicates: List[Dict]
-) -> None:
-    """Print summary of import operations.
+def _print_summary(to_add: List[Dict], to_update: List[Dict], duplicates: List[Dict]) -> None:
+    """Print import summary."""
+    categories = [
+        ("NEW", to_add, "+"),
+        ("UPDATE", to_update, "~"),
+        ("SKIP (already exists with equal/higher confidence)", duplicates, "-"),
+    ]
 
-    Args:
-        to_add: List of instincts to add
-        to_update: List of instincts to update
-        duplicates: List of duplicate instincts
-    """
-    if to_add:
-        print(f"NEW ({len(to_add)}):")
-        for inst in to_add:
-            print(f"  + {inst.get('id')} (confidence: {inst.get('confidence', 0.5):.2f})")
-
-    if to_update:
-        print(f"\nUPDATE ({len(to_update)}):")
-        for inst in to_update:
-            print(f"  ~ {inst.get('id')} (confidence: {inst.get('confidence', 0.5):.2f})")
-
-    if duplicates:
-        print(f"\nSKIP ({len(duplicates)} - already exists with equal/higher confidence):")
-        for inst in duplicates[:5]:
-            print(f"  - {inst.get('id')}")
-        if len(duplicates) > 5:
-            print(f"  ... and {len(duplicates) - 5} more")
+    for label, items, prefix in categories:
+        if items:
+            print(f"\n{label} ({len(items)}):")
+            for inst in items[:5]:
+                conf = inst.get('confidence', 0.5)
+                print(f"  {prefix} {inst.get('id')} (confidence: {conf:.2f})")
+            if len(items) > 5:
+                print(f"  ... and {len(items) - 5} more")
 
 
-def _write_single_instinct_file(
-    instinct: Dict,
-    source: str,
-    output_file: Path
-) -> None:
-    """Write a single instinct to its own file.
+def _write_instinct_file(instinct: Dict, source: str, output_file: Path) -> None:
+    """Write a single instinct to its own file."""
+    header = f"# Imported from {source}\n# Date: {datetime.now().isoformat()}\n\n"
 
-    Args:
-        instinct: Single instinct dictionary to write
-        source: Original source identifier
-        output_file: Output file path
-    """
-    iso_date = datetime.now().isoformat()
-    output_content = (
-        f"# Imported from {source}\n"
-        f"# Date: {iso_date}\n\n"
+    frontmatter = (
         f"---\n"
         f"id: {instinct.get('id')}\n"
         f"trigger: \"{instinct.get('trigger', 'unknown')}\"\n"
@@ -187,53 +83,26 @@ def _write_single_instinct_file(
     )
 
     if instinct.get('source_repo'):
-        output_content += f"source_repo: {instinct.get('source_repo')}\n"
+        frontmatter += f"source_repo: {instinct.get('source_repo')}\n"
 
-    output_content += f"---\n\n"
-    output_content += instinct.get('content', '') + "\n\n"
-
-    output_file.write_text(output_content, encoding='utf-8')
-
-
-def _fetch_import_content(source: str) -> str:
-    """Fetch content from URL or file for import.
-
-    Args:
-        source: File path or URL
-
-    Returns:
-        Content as string
-
-    Raises:
-        urllib.error.URLError: If URL fetch fails
-        FileNotFoundError: If file doesn't exist
-    """
-    if source.startswith(('http://', 'https://')):
-        return _fetch_content_from_url(source)
-    return _fetch_content_from_file(source)
+    output_file.write_text(
+        header + frontmatter + "---\n\n" + instinct.get('content', '') + "\n\n",
+        encoding='utf-8'
+    )
 
 
 def cmd_import(args: Namespace) -> int:
     """Import instincts from file or URL.
 
-    Args:
-        args: argparse.Namespace with attributes:
-            - source: File path or URL to import from
-            - dry_run: Preview without importing (optional)
-            - force: Skip confirmation (optional)
-            - min_confidence: Minimum confidence threshold (optional)
-
-    Returns:
-        0 on success, 1 on error.
+    Returns 0 on success, 1 on error.
     """
     # Fetch content
     try:
-        content = _fetch_import_content(args.source)
+        content = _fetch_content(args.source)
     except (urllib.error.URLError, FileNotFoundError) as e:
-        print(f"Error: {getattr(e, 'str', str(e))}", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
         return 1
 
-    # Print URL fetch message
     if args.source.startswith(('http://', 'https://')):
         print(f"Fetching from URL: {args.source}")
 
@@ -245,21 +114,15 @@ def cmd_import(args: Namespace) -> int:
 
     print(f"\nFound {len(new_instincts)} instincts to import.\n")
 
-    # Categorize instincts
-    to_add, to_update, duplicates = _categorize_instincts(
-        new_instincts,
-        load_all_instincts()
-    )
-
-    # Filter by confidence
+    # Categorize and filter
+    to_add, to_update, duplicates = _categorize_instincts(new_instincts, load_all_instincts())
     min_conf = args.min_confidence or 0.0
     to_add = _filter_by_confidence(to_add, min_conf)
     to_update = _filter_by_confidence(to_update, min_conf)
 
-    # Print summary
-    _print_import_summary(to_add, to_update, duplicates)
+    _print_summary(to_add, to_update, duplicates)
 
-    # Handle early exits (dry run, nothing to import, cancelled)
+    # Handle early exits
     if args.dry_run:
         print("\n[DRY RUN] No changes made.")
         return 0
@@ -273,13 +136,13 @@ def cmd_import(args: Namespace) -> int:
             print("Cancelled.")
             return 0
 
-    # Write output files (one file per instinct)
+    # Write files
     all_to_write = to_add + to_update
     written_files = []
 
     for inst in all_to_write:
         output_file = INHERITED_DIR / f"{inst.get('id')}.md"
-        _write_single_instinct_file(inst, args.source, output_file)
+        _write_instinct_file(inst, args.source, output_file)
         written_files.append(output_file)
 
     print("\n✅ Import complete!")

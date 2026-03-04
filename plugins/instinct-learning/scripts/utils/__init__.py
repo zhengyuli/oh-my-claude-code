@@ -11,7 +11,8 @@ from .file_io import (
     INHERITED_DIR,
     ARCHIVED_DIR,
     OBSERVATIONS_FILE,
-    DATA_DIR
+    DATA_DIR,
+    INSTINCT_FILE_PATTERNS,
 )
 from .confidence import calculate_effective_confidence, DEFAULT_DECAY_RATE
 from .instinct_parser import parse_instinct_file
@@ -26,4 +27,5 @@ __all__ = [
     'ARCHIVED_DIR',
     'OBSERVATIONS_FILE',
     'DATA_DIR',
+    'INSTINCT_FILE_PATTERNS',
 ]

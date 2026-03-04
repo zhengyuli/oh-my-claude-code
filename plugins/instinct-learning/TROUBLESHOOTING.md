@@ -198,13 +198,15 @@ ls $INSTINCT_LEARNING_DATA_DIR/observations/
 
 ### Large observation files
 
-- Files > 2MB are automatically rotated
-- Archives are cleaned after analysis
-- Configure limits in observe.sh:
+- Files > 1MB are automatically archived with timestamp
+- Archives are processed chronologically by analyzer and deleted after analysis
+- No limit on archive count - they accumulate until analyzed
+- Configure size limit in config.json:
   ```bash
-  MAX_FILE_SIZE_MB=2  # Rotation threshold
-  MAX_ARCHIVE_FILES=10  # Max archives to keep
+  observation.max_file_size_mb: 1  # Archive threshold (MB)
   ```
+
+**Archive naming**: `observations-2026-03-03T13:45:00Z.jsonl` (UTC timestamp)
 
 ### Slow hook execution
 

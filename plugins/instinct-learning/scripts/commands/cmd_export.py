@@ -1,33 +1,7 @@
-"""
-Export command handler.
+"""Export command handler.
 
-This module handles exporting instincts to various formats, supporting filtering
-by domain and confidence level. Exported instincts can be saved to a file or
-printed to stdout for sharing with others.
-
-Supported Output Formats:
-- YAML frontmatter + markdown (default)
-- Compatible with import command for round-trip data transfer
-
-Filtering Options:
-- domain: Filter by instinct domain (testing, workflow, etc.)
-- min_confidence: Only export instincts above threshold
-
-Usage Examples:
-    # Export all instincts to file
-    $ python3 instinct_cli.py export --output my-instincts.md
-
-    # Export only testing domain
-    $ python3 instinct_cli.py export --domain testing --output testing.md
-
-    # Export high-confidence instincts to stdout
-    $ python3 instinct_cli.py export --min-confidence 0.8
-
-Output Format:
-    Each exported instinct includes:
-    - YAML frontmatter with all metadata (id, trigger, confidence, domain, etc.)
-    - Original markdown content section
-    - Header with export date and total count
+Exports instincts to YAML frontmatter + markdown format. Supports filtering
+by domain and confidence level. Can save to file or print to stdout.
 """
 
 from datetime import datetime
@@ -38,27 +12,10 @@ from utils.file_io import load_all_instincts
 
 
 def cmd_export(args: Namespace) -> int:
-    """Export instincts to file.
+    """Export instincts to file or stdout.
 
-    This function filters instincts based on domain and/or confidence level,
-    then exports them in YAML frontmatter + markdown format. The output can
-    be directed to a file or printed to stdout.
-
-    Args:
-        args: argparse.Namespace with attributes:
-            - output: Output file path (optional, prints to stdout if not provided)
-            - domain: Filter by domain (optional)
-            - min_confidence: Minimum confidence threshold (optional)
-
-    Returns:
-        0 on success, 1 if no instincts match criteria.
-
-    Raises:
-        IOError: If output file cannot be written
-
-    Example:
-        >>> cmd_export(Namespace(output='test.md', domain=None, min_confidence=0.7))
-        # Exports instincts with confidence >= 0.7 to test.md
+    Filters instincts by domain and/or confidence, then exports them
+    in YAML frontmatter + markdown format.
     """
     instincts = load_all_instincts()
 

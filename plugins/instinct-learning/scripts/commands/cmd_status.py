@@ -1,35 +1,7 @@
-"""
-Status command handler.
+"""Status command handler.
 
-This module displays comprehensive information about learned instincts,
-including confidence scores, domain groupings, and system statistics. The
-output is formatted for easy reading with confidence bars and grouping.
-
-Display Format:
-- Header with total instinct count
-- Personal vs inherited breakdown
-- Domain-grouped instinct listings
-- Confidence bars (█/░) for visual confidence representation
-- Action snippets extracted from content
-- Observation file statistics
-
-Confidence Bar:
-- 10 characters total (█ for filled, ░ for empty)
-- Shows percentage: ████████░░ 85%
-- Each █ represents 10% confidence
-
-Usage:
-    # Show all instincts
-    $ python3 instinct_cli.py status
-
-    # Show only testing instincts
-    $ python3 instinct_cli.py status --domain testing
-
-Output Interpretation:
-- Personal: User-created instincts in this environment
-- Inherited: Imported instincts from external sources
-- Domains: Categorized automatically (testing, workflow, etc.)
-- Confidence bars: Visual representation of confidence level
+Displays learned instincts with confidence scores, domain groupings,
+and system statistics. Shows confidence bars (█/░) and action snippets.
 """
 
 import re
@@ -45,28 +17,7 @@ from utils.file_io import (
 
 
 def cmd_status(args: Namespace) -> int:
-    """Display all learned instincts with confidence scores.
-
-    This function loads all instincts from both personal and inherited
-    directories, groups them by domain, and displays them in a formatted
-    output with confidence bars, trigger descriptions, and action snippets.
-
-    Args:
-        args: argparse.Namespace (reserved for future filtering options)
-            Currently unused but reserved for future domain filtering
-
-    Returns:
-        0 on success (always succeeds, displays message if no instincts)
-
-    Output Format:
-        - Total instinct count with personal/inherited breakdown
-        - Domain-grouped sections with instinct listings
-        - Confidence bars (10 characters: █ for filled, ░ for empty)
-        - Trigger descriptions and action snippets
-        - Observation file statistics if available
-    """
-    _ = args  # Reserved for future filtering options
-
+    """Display all learned instincts with confidence scores."""
     instincts = load_all_instincts()
 
     if not instincts:
@@ -104,14 +55,13 @@ def cmd_status(args: Namespace) -> int:
             print(f"  {conf_bar} {int(conf*100):3d}%  {inst.get('id', 'unnamed')}")
             print(f"            trigger: {inst.get('trigger', 'unknown trigger')}")
 
-            action_match = re.search(
-                r'## Action\s*\n\s*(.+?)(?:\n\n|\n##|$)',
-                inst.get('content', ''),
-                re.DOTALL
-            )
-            if action_match:
-                action = action_match.group(1).strip().split('\n')[0]
-                print(f"            action: {action[:60] + '...' if len(action) > 60 else action}")
+            # Extract action snippet
+            content = inst.get('content', '')
+            match = re.search(r'## Action\s*\n\s*(.+?)(?:\n\n|\n##|$)', content, re.DOTALL)
+            if match:
+                action = match.group(1).strip().split('\n')[0]
+                action = action[:60] + '...' if len(action) > 60 else action
+                print(f"            action: {action}")
             print()
 
     # Print observations info

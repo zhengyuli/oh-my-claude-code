@@ -42,58 +42,58 @@ def parse_instinct_file(content: str) -> List[Dict[str, Any]]:
     """Parse instinct file using safe YAML parsing.
 
     SECURITY: Uses yaml.safe_load() to prevent arbitrary code execution.
+    Handles multiple instincts per file with YAML frontmatter + markdown content.
+
+    Args:
+        content: File content with YAML frontmatter blocks separated by ---.
+
+    Returns:
+        List of validated instinct dictionaries with metadata and content.
+
+    Examples:
+        >>> content = "---\\nid: test\\n---\\nContent here"
+        >>> parse_instinct_file(content)
+        [{'id': 'test', 'content': 'Content here'}]
     """
     instincts = []
-    current = {}
-    in_frontmatter = False
-    content_lines = []
-    frontmatter_lines = []
 
-    for line in content.split('\n'):
-        if line.strip() == '---':
-            if in_frontmatter:
-                # End of frontmatter - parse safely
-                try:
-                    frontmatter_str = '\n'.join(frontmatter_lines)
-                    parsed = yaml.safe_load(frontmatter_str)
+    # Split on --- delimiters
+    # Note: Keep empty parts to handle instincts with empty content
+    parts = [p for p in re.split(r'^---$', content, flags=re.MULTILINE)]
 
-                    if isinstance(parsed, dict):
-                        # Only keep allowed keys
-                        parsed = {k: v for k, v in parsed.items() if k in ALLOWED_KEYS}
+    # Skip first part if empty (content before first ---)
+    if parts and parts[0].strip() == '':
+        parts = parts[1:]
 
-                        # Validate confidence if present
-                        if 'confidence' in parsed:
-                            parsed['confidence'] = validate_confidence(parsed['confidence'])
+    # Process in pairs: (frontmatter, content)
+    # Last item without a pair gets empty content
+    for i in range(0, len(parts), 2):
+        frontmatter_str = parts[i].strip() if i < len(parts) else ''
+        content_str = parts[i + 1].strip() if i + 1 < len(parts) else ''
 
-                        # Sanitize string values
-                        for key, value in parsed.items():
-                            if isinstance(value, str):
-                                parsed[key] = sanitize_string(value)
+        try:
+            parsed = yaml.safe_load(frontmatter_str)
+            if not isinstance(parsed, dict):
+                continue
 
-                        current.update(parsed)
-                except (yaml.YAMLError, ValueError):
-                    # Skip malformed entries
-                    pass
+            # Security: Only keep allowed keys
+            parsed = {k: v for k, v in parsed.items() if k in ALLOWED_KEYS}
 
-                in_frontmatter = False
-                frontmatter_lines = []
-            else:
-                # Start of frontmatter - save previous instinct
-                if current:
-                    current['content'] = '\n'.join(content_lines).strip()
-                    instincts.append(current)
-                current = {}
-                content_lines = []
-                in_frontmatter = True
-        elif in_frontmatter:
-            frontmatter_lines.append(line)
-        else:
-            content_lines.append(line)
+            # Validate confidence if present
+            if 'confidence' in parsed:
+                parsed['confidence'] = validate_confidence(parsed['confidence'])
 
-    # Don't forget the last instinct
-    if current:
-        current['content'] = '\n'.join(content_lines).strip()
-        instincts.append(current)
+            # Sanitize string values
+            for key, value in parsed.items():
+                if isinstance(value, str):
+                    parsed[key] = sanitize_string(value)
+
+            parsed['content'] = content_str
+            instincts.append(parsed)
+
+        except (yaml.YAMLError, ValueError):
+            # Skip malformed entries
+            continue
 
     # Filter out instincts without valid ID
     return [i for i in instincts if i.get('id')]

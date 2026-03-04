@@ -12,8 +12,7 @@ set -e
 DATA_DIR="${INSTINCT_LEARNING_DATA_DIR:-$HOME/.claude/instinct-learning}"
 OBS_DIR="${DATA_DIR}/observations"
 OBSERVATIONS_FILE="${OBS_DIR}/observations.jsonl"
-MAX_FILE_SIZE_MB=2
-MAX_ARCHIVE_FILES=10
+MAX_FILE_SIZE_MB=1
 
 # Debug logging (optional)
 if [ "$DEBUG_HOOKS" = "1" ]; then
@@ -121,27 +120,19 @@ if [ "$PARSED_OK" != "True" ]; then
   exit 0
 fi
 
-# Rotate if file too large (numbered archive system)
-# Archive naming: observations.1.jsonl, observations.2.jsonl, ..., observations.10.jsonl
-# When limit reached: delete .10, rotate .9→.10, .8→.9, ..., current→.1
+# Archive with timestamp if file too large
+# Archive naming: observations-2026-03-03T13:45:00Z.jsonl
 if [ -f "$OBSERVATIONS_FILE" ]; then
-  file_size_mb=$(du -m "$OBSERVATIONS_FILE" 2>/dev/null | cut -f1)
-  if [ "${file_size_mb:-0}" -ge "$MAX_FILE_SIZE_MB" ]; then
-    # Step 1: Remove oldest archive if at limit (prevents infinite growth)
-    if [ -f "${OBS_DIR}/observations.${MAX_ARCHIVE_FILES}.jsonl" ]; then
-      rm "${OBS_DIR}/observations.${MAX_ARCHIVE_FILES}.jsonl"
-    fi
+  file_size_bytes=$(wc -c < "$OBSERVATIONS_FILE" 2>/dev/null || echo 0)
+  file_size_mb=$((file_size_bytes / 1024 / 1024))
+  if [ "$file_size_mb" -ge "$MAX_FILE_SIZE_MB" ]; then
+    # Generate timestamp for archive filename
+    archive_timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    archive_file="${OBS_DIR}/observations-${archive_timestamp}.jsonl"
 
-    # Step 2: Rotate existing archives (highest number first)
-    # This order prevents overwriting: .9 → .10 before .8 → .9
-    for i in $(seq $((MAX_ARCHIVE_FILES-1)) -1 1); do
-      if [ -f "${OBS_DIR}/observations.${i}.jsonl" ]; then
-        mv "${OBS_DIR}/observations.${i}.jsonl" "${OBS_DIR}/observations.$((i+1)).jsonl"
-      fi
-    done
-
-    # Step 3: Move current file to .1 (creates space for new observations)
-    mv "$OBSERVATIONS_FILE" "${OBS_DIR}/observations.1.jsonl"
+    # Move current file to timestamped archive
+    mv "$OBSERVATIONS_FILE" "$archive_file"
+    log "Archived observations to: $archive_file"
   fi
 fi
 
@@ -171,21 +162,5 @@ print(json.dumps(observation))
 log "Observation written successfully"
 
 # ========== Critical Section End (trap auto-releases lock on exit) ==========
-
-# ========== Cleanup Archives (with race condition prevention) ==========
-
-# CRITICAL: Check for processing marker before cleanup
-# The analyzer agent creates .processing marker before starting analysis
-if [ -f "${OBS_DIR}/.processing" ]; then
-  log "Processing marker exists - skipping archive cleanup to prevent data loss"
-  exit 0
-fi
-
-# Remove analyzed archives (only files older than 5 minutes AND without .processing suffix)
-# Double protection: marker check + ! -name "*.processing" pattern
-find "${OBS_DIR}" -name "observations.*.jsonl" -mmin +5 ! -name "*.processing" -delete 2>/dev/null
-log "Archives cleaned up (respected processing marker)"
-
-# ========== Critical Section End ==========
 
 exit 0
